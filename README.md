@@ -155,7 +155,7 @@ backtester/        — Execution engines + reporting
   gan_bridge.py    — cGAN integration
   options/         — Options pricing, Greeks, positions
 
-SImulated Data/    — Sachit's cGAN + Heston Monte Carlo
+SImulated Data/    — Connor's cGAN + Heston Monte Carlo
   cGAN/            — Trained models, training code, regime CSVs
 ```
 
@@ -163,6 +163,6 @@ SImulated Data/    — Sachit's cGAN + Heston Monte Carlo
 
 | Person | Area |
 |---|---|
-| Robbie | Framework architecture, data layer, scorecard, pipeline |
-| Sachit | Event-driven engine, cGAN training, Heston Monte Carlo |
-| Connor | Monte Carlo simulation, GBM, noise injection |
+| Robbie | Framework architecture, bar backtester, scorecard, data layer (10 providers), synthetic module (GBM / bootstrap / noise injection) |
+| Sachit | Event-driven engine, OCO brackets, Strategy base class, SMA crossover + mean reversion |
+| Connor | cGAN (regime-conditioned synthetic data), Heston stochastic-volatility Monte Carlo |
