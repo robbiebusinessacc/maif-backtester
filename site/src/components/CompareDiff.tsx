@@ -17,43 +17,36 @@ function parseNum(v: string | null | undefined): number | null {
   return m ? parseFloat(m[0]) : null;
 }
 
-function deltaCell(
+type Winner = "a" | "b" | "tie" | "none";
+
+function compare(
   a: string | null | undefined,
   b: string | null | undefined,
-  opts: { higherIsBetter?: boolean } = {},
-) {
-  const higherIsBetter = opts.higherIsBetter ?? true;
+  higherIsBetter = true,
+): { winner: Winner; gap: string } {
   const na = parseNum(a);
   const nb = parseNum(b);
-  if (na === null || nb === null) return <span className="text-muted">—</span>;
-  const diff = na - nb;
-  if (diff === 0) return <span className="text-muted font-mono">≈</span>;
-  const sign = diff > 0 ? "+" : "−";
-  const good = higherIsBetter ? diff > 0 : diff < 0;
-  return (
-    <span
-      className="font-mono tabular-nums text-[0.88rem]"
-      style={{ color: good ? "#2E7D32" : "#C62828" }}
-    >
-      {sign}
-      {Math.abs(diff).toFixed(2)}
-    </span>
-  );
+  if (na === null || nb === null) return { winner: "none", gap: "—" };
+  if (na === nb) return { winner: "tie", gap: "≈" };
+  const aHigher = na > nb;
+  const aWins = higherIsBetter ? aHigher : !aHigher;
+  return { winner: aWins ? "a" : "b", gap: Math.abs(na - nb).toFixed(2) };
 }
 
-function deltaGrade(a: string, b: string) {
-  const diff = gradeRank(a) - gradeRank(b);
-  if (diff === 0) return <span className="text-muted font-mono">≈</span>;
-  const good = diff < 0;
-  const arrow = diff < 0 ? "↑" : "↓";
-  return (
-    <span
-      className="font-mono text-[0.88rem]"
-      style={{ color: good ? "#2E7D32" : "#C62828" }}
-    >
-      {arrow} {Math.abs(diff)}
-    </span>
-  );
+function compareGrade(a: string, b: string): { winner: Winner; gap: string } {
+  const ra = gradeRank(a);
+  const rb = gradeRank(b);
+  if (ra === rb) return { winner: "tie", gap: "≈" };
+  return { winner: ra < rb ? "a" : "b", gap: String(Math.abs(ra - rb)) };
+}
+
+// Emphasize the winning cell — bold + maroon. The non-winner stays neutral ink.
+function cellStyle(winner: Winner, side: "a" | "b"): string {
+  return winner === side ? "font-semibold text-primary" : "";
+}
+
+function GapCell({ gap }: { gap: string }) {
+  return <span className="font-mono tabular-nums text-[0.82rem] text-muted">{gap}</span>;
 }
 
 function Picker({
@@ -158,82 +151,97 @@ export default function CompareDiff() {
       </div>
 
       {/* Metrics table */}
-      <div className="mt-8 border border-hair bg-white overflow-x-auto">
-        <table className="w-full text-sm tabular">
-          <thead>
-            <tr className="border-b border-ink">
-              <th className="text-left font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted px-4 py-3 w-[180px]">Metric</th>
-              <th className="text-right font-display text-[1.05rem] text-ink px-4 py-3">
-                A &nbsp; <span className="text-muted italic font-display">{A.name} · {A.asset}</span>
-              </th>
-              <th className="text-center font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted px-3 py-3 w-[70px]">Δ</th>
-              <th className="text-right font-display text-[1.05rem] text-ink px-4 py-3">
-                B &nbsp; <span className="text-muted italic font-display">{B.name} · {B.asset}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="text-ink">
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Asset class</td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem] uppercase tracking-[0.08em]">{A.assetClass}</td>
-              <td className="px-3 py-3 text-center"></td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem] uppercase tracking-[0.08em]">{B.assetClass}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Period</td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.period}</td>
-              <td className="px-3 py-3 text-center"></td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.period}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">CAGR</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{A.headline.return ?? "—"}</td>
-              <td className="px-3 py-3 text-center">{deltaCell(A.headline.return, B.headline.return)}</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.return ?? "—"}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Sharpe</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{A.headline.sharpe ?? "—"}</td>
-              <td className="px-3 py-3 text-center">{deltaCell(A.headline.sharpe, B.headline.sharpe)}</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.sharpe ?? "—"}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Max drawdown</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{A.headline.maxDrawdown ?? "—"}</td>
-              <td className="px-3 py-3 text-center">{deltaCell(A.headline.maxDrawdown, B.headline.maxDrawdown, { higherIsBetter: true })}</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.maxDrawdown ?? "—"}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Trades</td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{A.headline.trades ?? "—"}</td>
-              <td className="px-3 py-3 text-center"></td>
-              <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.trades ?? "—"}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Benchmark (CAGR)</td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.headline.benchmark ?? "—"}</td>
-              <td className="px-3 py-3 text-center"></td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.headline.benchmark ?? "—"}</td>
-            </tr>
-            <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Engine divergence</td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.headline.divergence ?? "—"}</td>
-              <td className="px-3 py-3 text-center"></td>
-              <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.headline.divergence ?? "—"}</td>
-            </tr>
-            <tr>
-              <td className="px-4 py-3 label">Overall grade</td>
-              <td className="px-4 py-3 text-right">
-                <span className={`grade ${gradeClass(A.grade)}`}>{A.grade}</span>
-              </td>
-              <td className="px-3 py-3 text-center">{deltaGrade(A.grade, B.grade)}</td>
-              <td className="px-4 py-3 text-right">
-                <span className={`grade ${gradeClass(B.grade)}`}>{B.grade}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {(() => {
+        const cagr = compare(A.headline.return, B.headline.return, true);
+        const sharpe = compare(A.headline.sharpe, B.headline.sharpe, true);
+        const mdd = compare(A.headline.maxDrawdown, B.headline.maxDrawdown, true); // -11 > -22 → higher = better
+        const grade = compareGrade(A.grade, B.grade);
+        return (
+          <div className="mt-8 border border-hair bg-white overflow-x-auto">
+            <table className="w-full text-sm tabular">
+              <thead>
+                <tr className="border-b border-ink">
+                  <th className="text-left font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted px-4 py-3 w-[180px]">Metric</th>
+                  <th className="text-right font-display text-[1.05rem] text-ink px-4 py-3">
+                    A &nbsp; <span className="text-muted italic font-display">{A.name} · {A.asset}</span>
+                  </th>
+                  <th className="text-center font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted px-3 py-3 w-[80px]">Gap</th>
+                  <th className="text-right font-display text-[1.05rem] text-ink px-4 py-3">
+                    B &nbsp; <span className="text-muted italic font-display">{B.name} · {B.asset}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-ink">
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">Asset class</td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem] uppercase tracking-[0.08em]">{A.assetClass}</td>
+                  <td className="px-3 py-3 text-center"></td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem] uppercase tracking-[0.08em]">{B.assetClass}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">Period</td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.period}</td>
+                  <td className="px-3 py-3 text-center"></td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.period}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">CAGR</td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[1.05rem] ${cellStyle(cagr.winner, "a")}`}>{A.headline.return ?? "—"}</td>
+                  <td className="px-3 py-3 text-center"><GapCell gap={cagr.gap} /></td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[1.05rem] ${cellStyle(cagr.winner, "b")}`}>{B.headline.return ?? "—"}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">Sharpe</td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[1.05rem] ${cellStyle(sharpe.winner, "a")}`}>{A.headline.sharpe ?? "—"}</td>
+                  <td className="px-3 py-3 text-center"><GapCell gap={sharpe.gap} /></td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[1.05rem] ${cellStyle(sharpe.winner, "b")}`}>{B.headline.sharpe ?? "—"}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">
+                    Max drawdown
+                    <span className="block text-[0.7rem] normal-case tracking-normal text-muted">smaller is better</span>
+                  </td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[1.05rem] ${cellStyle(mdd.winner, "a")}`}>{A.headline.maxDrawdown ?? "—"}</td>
+                  <td className="px-3 py-3 text-center"><GapCell gap={mdd.gap} /></td>
+                  <td className={`px-4 py-3 text-right font-mono tabular-nums text-[1.05rem] ${cellStyle(mdd.winner, "b")}`}>{B.headline.maxDrawdown ?? "—"}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">Trades</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{A.headline.trades ?? "—"}</td>
+                  <td className="px-3 py-3 text-center"></td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.trades ?? "—"}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">Benchmark (CAGR)</td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.headline.benchmark ?? "—"}</td>
+                  <td className="px-3 py-3 text-center"></td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.headline.benchmark ?? "—"}</td>
+                </tr>
+                <tr className="border-b border-hair">
+                  <td className="px-4 py-3 label">Engine divergence</td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.headline.divergence ?? "—"}</td>
+                  <td className="px-3 py-3 text-center"></td>
+                  <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.headline.divergence ?? "—"}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 label">Overall grade</td>
+                  <td className={`px-4 py-3 text-right ${cellStyle(grade.winner, "a")}`}>
+                    <span className={`grade ${gradeClass(A.grade)}`}>{A.grade}</span>
+                  </td>
+                  <td className="px-3 py-3 text-center"><GapCell gap={grade.gap} /></td>
+                  <td className={`px-4 py-3 text-right ${cellStyle(grade.winner, "b")}`}>
+                    <span className={`grade ${gradeClass(B.grade)}`}>{B.grade}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="px-4 py-3 border-t border-hair text-[0.78rem] text-muted italic">
+              The <span className="font-semibold text-primary not-italic">maroon, bold value</span> wins on that metric.
+              The Gap column shows the absolute difference — no sign, no direction math.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Scorecard PNGs — stacked, full width */}
       <div className="mt-12 space-y-10">
