@@ -1,6 +1,8 @@
-# Trading Strategy Testing Framework
+# MAIF Testing Framework
 
-A plug-and-play backtesting framework. Write a strategy, get a standardized scorecard — same metrics, same pipeline, comparable results.
+A plug-and-play backtesting framework for the Minutemen Alternative Investment Fund. Write a strategy, get a standardized scorecard — same metrics, same pipeline, comparable results.
+
+**Site:** [maif.robbiew.dev](https://maif.robbiew.dev) &nbsp;·&nbsp; **Try it in Colab:** [quickstart notebook ↗](https://colab.research.google.com/github/robbiebusinessacc/maif-backtester/blob/main/notebooks/quickstart.ipynb)
 
 ## Quickstart (30 seconds)
 
