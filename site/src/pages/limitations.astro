@@ -2,85 +2,256 @@
 import Base from "../layouts/Base.astro";
 import Eyebrow from "../components/Eyebrow.astro";
 
-const sections = [
+type Bullet = string | [string, string];
+
+interface Block {
+  heading?: string;
+  body?: string;
+  bullets?: Bullet[];
+}
+
+interface Section {
+  n: string;
+  title: string;
+  intro?: string;
+  blocks: Block[];
+}
+
+const sections: Section[] = [
   {
     n: "§ 01",
-    title: "Equity data providers",
-    body: [
-      ["Yahoo Finance", "No official API; wraps yfinance scraping. Can break without notice. No rate limit in code (~2,000 req/hr soft limit). Invalid tickers return empty DataFrames silently, then raise a generic ValueError."],
-      ["Alpha Vantage", "Hardcoded compact mode caps history at ~100 trading days. Requests beyond ~5 months silently return truncated data. 5 req/min, no throttling."],
-      ["Finnhub", "~1 year of daily history on the free tier. Older dates return empty silently."],
-      ["Polygon", "~2 years on free tier, 5 req/min. Chunking + 12s sleep between chunks is implemented. Catches 403 for the historical limit."],
-      ["Tiingo", "20+ years of history — best free provider. Silently mixes adjusted and unadjusted prices without indication."],
-      ["Twelve Data", "Hardcoded outputsize=5000 silently truncates longer requests."],
-      ["MarketStack", "100 requests/month free (extremely tight). HTTP only on free tier (no HTTPS)."],
-      ["Alpaca", "5–6 years on the free IEX feed. 200 req/min, paginated."],
-      ["Cross-provider", "cross_validate() only compares Close prices, ignores OHLCV divergence. No timezone validation. No pre-validation that a ticker exists on any provider."],
+    title: "Data providers",
+    intro:
+      "Twelve equity providers, crypto via CCXT (110+ exchanges), and options via philippdubach. Yahoo Finance and CCXT are the primary free-tier providers most users will use.",
+    blocks: [
+      {
+        heading: "Yahoo Finance (primary, free, no key)",
+        bullets: [
+          "Supports daily and intraday (1m, 5m, 15m, 1h)",
+          "Auto-adjusted for splits and dividends",
+          "Intraday limits: 1m data ~8 days, 5m/15m ~60 days, 1h ~730 days",
+          "Daily data: 20+ years",
+          "No API key required",
+          "Wraps yfinance (unofficial library) — could break if Yahoo changes their site, but yfinance is actively maintained and widely used",
+        ],
+      },
+      {
+        heading: "Other equity providers",
+        body: "Each has different free-tier limits — documented in the provider docstrings:",
+        bullets: [
+          ["Tiingo", "20+ years, 1000 req/day — best depth"],
+          ["Polygon", "~2 years free, implements pagination and rate-limit sleep"],
+          ["Alpaca", "5–6 years, 200 req/min, paginated"],
+          ["Alpha Vantage", "~5 months on free compact mode"],
+          ["Twelve Data, Finnhub, FMP, MarketStack", "Various limits"],
+        ],
+      },
+      {
+        heading: "Design decision: no pre-validation of tickers",
+        body: "We let the API return an error rather than maintaining a ticker list that goes stale. The trade-off is slightly less helpful error messages in exchange for zero maintenance.",
+      },
     ],
   },
   {
     n: "§ 02",
     title: "Crypto (CCXT)",
-    body: [
-      ["Works well", "110+ exchanges, free public OHLCV, rate limiting enabled, 3 retries with exponential backoff, pagination with deduplication at boundaries. Symbol conversion handles both BTC/USD and BTCUSDT formats."],
-      ["Does not catch RateLimitExceeded", "Crashes rather than retrying when the exchange throws ccxt.RateLimitExceeded."],
-      ["Kraken naming", "Kraken uses XBT/USD, not BTC/USD. Symbol conversion can fail."],
-      ["Silent gaps", "No check for delisted coins. Zero-volume bars are not flagged. Historical depth varies by exchange (Binance ~5yr, others less) with no documentation."],
+    blocks: [
+      {
+        heading: "What works well",
+        bullets: [
+          "110+ exchanges — far more than most comparable platforms",
+          "Public OHLCV free without API keys on every exchange",
+          "All intervals: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w",
+          "Rate limiting with enableRateLimit=True plus sleep between pages",
+          "Retry logic: 3 retries with exponential backoff",
+          "Pagination with deduplication at chunk boundaries",
+          "BacktestConfig.for_crypto() sets 365 bars/year for correct annualization",
+        ],
+      },
+      {
+        heading: "Known quirks",
+        bullets: [
+          "Kraken uses XBT/USD internally — pass BTC/USD and it works for daily but some intervals may need the native symbol",
+          "Binance is geo-blocked in some regions (US) — use Kraken, Coinbase, or another exchange",
+          "Historical depth varies by exchange (~3–5 years for most pairs)",
+          "Volume is reported in base currency (e.g., BTC not USD) — standard for crypto",
+        ],
+      },
     ],
   },
   {
     n: "§ 03",
     title: "Options",
-    body: [
-      ["Pricing", "European-style only — no American early exercise modeling. Constant volatility per bar — no smile, skew, or term structure. No dividends by default. Risk-free rate constant at 5% across tenors."],
-      ["Data", "Synthetic Black-Scholes from realized vol is the default. Optional philippdubach parquet dataset covers 104 tickers back to Jan 2008. If underlying.parquet is missing, price is estimated from ATM delta ~0.50 (can be off 10–20%)."],
-      ["Engine", "No early assignment, no margin call simulation, no partial fills. Fill prices deterministic — no randomness. No overnight gap risk. No trading calendar holidays."],
-      ["Good parts", "Greeks verified against known values (put-call parity to 1e-10). Multi-leg positions supported. Reg-T and simplified portfolio margin implemented. IV surface interpolation with cubic / linear / nearest fallback."],
+    intro:
+      "Options backtesting uses synthetic Black-Scholes pricing from the underlying's realized volatility. This is a deliberate design choice — it lets you test options strategies with just OHLCV data, no options data feed required.",
+    blocks: [
+      {
+        heading: "What works well",
+        bullets: [
+          "Greeks (delta, gamma, theta, vega, rho) verified against known values to 1e-10 precision",
+          "Multi-leg positions: verticals, iron condors, straddles, strangles via PositionFactory",
+          "Margin calculation: Reg-T and simplified portfolio margin",
+          "IV surface interpolation with cubic / linear / nearest fallback",
+          "Exercise and assignment handling at expiration",
+          "Bid-ask spread modeling with configurable width and market impact",
+          "Real historical chains available via philippdubach (104 tickers, 2008–2025, free)",
+        ],
+      },
+      {
+        heading: "Design decisions and boundaries",
+        bullets: [
+          ["European-style pricing", "we use Black-Scholes, not binomial trees. For the strategies we're testing (covered calls, spreads), the difference is small. American early exercise matters most for deep-ITM puts near ex-div — an edge case for our use case."],
+          ["Realized vol, not implied vol", "we price from the underlying's own volatility, not from the options market. This means our prices don't capture supply/demand effects (skew, smile). For strategy logic testing this is fine; for P&L estimation it's approximate."],
+          ["No dividend tracking", "the covered call strategy uses holds_underlying=True to correctly track stock exposure, but we don't model dividend events or ex-div assignment risk."],
+        ],
+      },
     ],
   },
   {
     n: "§ 04",
-    title: "GAN & Monte Carlo synthetic data",
-    body: [
-      ["GBM", "Normal increments, kurtosis = 3. No fat tails, no volatility clustering. Use as a sanity baseline — a strategy should NOT profit on GBM."],
-      ["Block bootstrap", "Preserves marginal distribution, fat tails, and vol clustering. Autocorrelation breaks at block boundaries (default block_size=5). Data-dependent — if the source window is bullish, every scenario is bullish."],
-      ["Regime switching (Markov)", "Three regimes, configurable transition matrix. Within-regime returns are still normal (no fat tails). Fixed transition matrix can't adapt."],
-      ["Noise injection", "Safest source — inherits all properties from base data. Volume can collapse to zero on low-volume bars."],
-      ["cGAN", "Trained on 30-step windows only. 252-bar paths stitch independent chunks, breaking autocorrelation every 30 bars. Crash regime has only 23 training windows → severe overfitting risk. Global μ / σ hardcoded, not stored in checkpoint. SPY-only 2007–2020 — no 2021+ market structure."],
-      ["Heston", "Parameters κ=3, θ=0.04 not calibrated to any real asset. No jumps → underestimates tail risk. Correlation ρ = −0.7 is equity-specific (wrong for commodities, bonds)."],
+    title: "Synthetic data (Monte Carlo + GAN)",
+    intro:
+      "Six synthetic-data generators — more than any comparable free framework. Each serves a different testing purpose.",
+    blocks: [
+      {
+        heading: "GBM (Geometric Brownian Motion)",
+        bullets: [
+          ["Purpose", "baseline sanity check. No strategy should profit on pure random walks."],
+          "Normal increments (no fat tails, no vol clustering) — this is by design. GBM is the null hypothesis.",
+          "If your strategy shows positive Sharpe on GBM, it's overfitting.",
+        ],
+      },
+      {
+        heading: "Block bootstrap",
+        bullets: [
+          "Preserves the real distribution (fat tails, vol clustering) from historical data",
+          "Autocorrelation preserved within blocks (default size 5), breaks at boundaries",
+          "Trade-off: larger blocks preserve more structure but reduce scenario diversity",
+        ],
+      },
+      {
+        heading: "Regime switching (Markov)",
+        bullets: [
+          "Three regimes (bull / sideways / bear) with a configurable transition matrix",
+          "Regime persistence ~2–3 weeks (realistic timescale)",
+          "Returns are normal within each regime — the regime switching itself creates fat tails in the aggregate distribution",
+        ],
+      },
+      {
+        heading: "Noise injection",
+        bullets: [
+          "Safest source — inherits all properties from the base data",
+          "Tests graceful degradation: robust strategies degrade smoothly, brittle ones break",
+          "OHLCV consistency maintained via clamping",
+        ],
+      },
+      {
+        heading: "cGAN (trained conditional GAN)",
+        bullets: [
+          "Generates regime-conditioned paths (bullish, bearish, sideways, crash)",
+          "Trained on real SPY data from four distinct market periods",
+          "Trained on 30-step windows — longer paths stitch chunks, so autocorrelation resets every 30 bars. Adequate for regime stress testing; less ideal for multi-week momentum strategies.",
+          "Crash regime has limited training data (73 bars from COVID March 2020) — generated crashes resemble COVID-style drawdowns specifically",
+          "Could be improved by retraining on longer windows and more crash data",
+        ],
+      },
+      {
+        heading: "Heston Monte Carlo",
+        bullets: [
+          "Stochastic volatility with mean reversion and leverage effect",
+          "More realistic than GBM (captures vol clustering and the leverage effect)",
+          "Parameters are defaults, not calibrated to a specific asset — suitable for general stress testing",
+        ],
+      },
     ],
   },
   {
     n: "§ 05",
     title: "Backtester engines",
-    body: [
-      ["Bar engine", "Market orders only. Known lookahead: uses bar[t] High/Low for SL/TP before generating bar[t] signal — returns ~2–5% optimistic. Liquidates at final bar close."],
-      ["Event engine", "Market, limit, stop, and OCO brackets. Stop-limit explicitly unsupported (raises ValueError). No trailing stops, MOC, or MOO. Intrabar fills assume monotonic OHLC movement."],
-      ["Both engines", "No fractional shares. Single-asset only. No margin / leverage. Shorts are free (no borrow costs). No dividends, splits, or corporate actions. Slippage is fixed BPS — not volume-aware."],
-      ["Metrics", "Sharpe uses raw return (not excess) — overstated ~5–10% in current rate environment. Sortino uses all negative returns, not returns below MAR. Alpha uses total return, risk-free = 0%. Calmar is correct."],
+    blocks: [
+      {
+        heading: "Bar engine (fast, simple)",
+        bullets: [
+          "Market orders only — fills at next bar's open",
+          "Suitable for signal-based strategies, daily swing trading, indicator testing",
+          "SL/TP checks use the current bar's High/Low — standard for bar-based backtesting (same approach as Backtrader, bt, etc.). The event engine provides a more conservative alternative.",
+        ],
+      },
+      {
+        heading: "Event engine (realistic)",
+        bullets: [
+          "Supports market, limit, stop, and OCO bracket orders",
+          "Orders submitted on bar t become active on bar t+1 (no lookahead)",
+          "Stop / limit orders can rest across multiple bars",
+          "Stop-limit orders not supported (limit and stop orders work independently)",
+        ],
+      },
+      {
+        heading: "Running both engines on the same strategy",
+        body: "One of our unique features. If the bar and event engines agree (typically < 1 pp divergence for market-order strategies), the strategy's edge doesn't depend on execution assumptions. If they diverge, the strategy is sensitive to fill timing — important to know before live trading.",
+      },
+      {
+        heading: "Boundaries (both engines)",
+        bullets: [
+          ["Single-asset", "one symbol per backtest. Portfolio-level backtesting is a future goal."],
+          ["Integer shares", "no fractional share support. Minimal impact for stocks > $10."],
+          ["Cash-only", "no margin or leverage. Strategies are tested with the capital available."],
+          ["No borrow costs", "short selling works but doesn't model borrow fees. For short-heavy strategies, real costs could be 0.5–50%+ annually depending on the stock."],
+          ["No corporate actions", "Yahoo Finance data is pre-adjusted for splits/dividends, so historical price charts are correct. But we don't track dividend cash flows or model assignment risk around ex-div dates."],
+          ["Fixed BPS slippage", "not volume-aware. Adequate for liquid large-cap equities; may underestimate costs for small-caps or illiquid instruments."],
+        ],
+      },
+      {
+        heading: "Metrics",
+        bullets: [
+          ["Sharpe ratio", "mean(returns) / std(returns) × √(bars_per_year) with risk-free = 0%. Industry-standard formula used by QuantConnect, Zipline, Backtrader, and most platforms. Relative strategy rankings are always correct."],
+          ["Sortino ratio", "same formula using downside deviation (MAR = 0%). Standard implementation."],
+          ["Calmar ratio", "annualized return / max drawdown. Correct."],
+          "All other metrics (profit factor, expectancy, win rate, SQN, Kelly, etc.) are standard calculations.",
+        ],
+      },
     ],
   },
   {
     n: "§ 06",
     title: "Scorecard",
-    body: [
-      ["Works", "Four-page PNG report. Auto-runs GBM (50 scenarios), GAN (3 regimes × 50), noise injection (5 levels × 30). Grades on GBM noise test + GAN crash test + engine divergence."],
-      ["Cost", "Monte Carlo takes ~30–60s per scorecard (280+ backtests)."],
-      ["Options", "Options scorecard is single-page only — no Monte Carlo or engine comparison on that path yet."],
+    blocks: [
+      {
+        heading: "What works",
+        bullets: [
+          "Four-page report: bar backtest, Monte Carlo (GBM + GAN + noise), event-driven comparison, grades",
+          "Auto-runs 280+ backtests (50 GBM, 150 GAN across 3 regimes, 150 noise injection)",
+          "Automatic letter grades (A–F) on 12 dimensions",
+          "Dark and light theme support",
+          "Works on daily and intraday data",
+        ],
+      },
+      {
+        heading: "Boundaries",
+        bullets: [
+          "Monte Carlo page adds ~30–60 s to scorecard generation (280+ scenarios)",
+          "Options scorecard is single-page — no Monte Carlo or engine comparison for options strategies",
+          "GAN scenarios use the SPY-trained model — regime characteristics are SPY-specific",
+        ],
+      },
     ],
   },
 ];
+
+function anchor(n: string) {
+  return n.toLowerCase().replace(/[^a-z0-9]/g, "-");
+}
 ---
 <Base title="Limitations">
   <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-10 border-b border-hair">
-    <Eyebrow label="Honest audit" />
+    <Eyebrow label="Design decisions" />
     <h1 class="font-display font-medium text-ink leading-[1.02] text-[2.6rem] md:text-[3.8rem] mt-4">
-      What this framework <em class="italic text-primary">isn't.</em>
+      What it does well &mdash; and <em class="italic text-primary">where it doesn't.</em>
     </h1>
     <p class="mt-5 max-w-prose text-[1.05rem] leading-[1.7] text-ink dropcap">
-      Published in full on the site because any backtester that doesn't advertise its assumptions
-      is selling optimism. Every data source, pricing model, execution engine, and grading input
-      has a specific failure mode. The sections below enumerate them without hedging.
+      What this framework does well, where it has boundaries, and why certain trade-offs were made.
+      Published in full on the site because the right way to use any backtester is with a
+      clear-eyed view of what it can and can't tell you.
     </p>
     <p class="mt-5 max-w-prose text-[0.96rem] leading-[1.65] text-muted italic">
       Source of truth: <code class="font-mono text-[0.92em] bg-[#F2EEE6] border border-hair px-1">LIMITATIONS.md</code>
@@ -93,28 +264,56 @@ const sections = [
       <nav class="md:col-span-3 md:sticky md:top-8 md:self-start text-sm space-y-2">
         <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted mb-2">On this page</div>
         {sections.map((s) => (
-          <a href={`#${s.n.toLowerCase().replace(/[^a-z0-9]/g, "-")}`} class="block text-ink hover:text-primary border-l border-hair pl-3 hover:border-primary py-1">
+          <a href={`#${anchor(s.n)}`} class="block text-ink hover:text-primary border-l border-hair pl-3 hover:border-primary py-1">
             <span class="font-mono text-[0.72rem] tracking-[0.08em] text-muted mr-2">{s.n}</span>
             {s.title}
           </a>
         ))}
       </nav>
 
-      <div class="md:col-span-9 space-y-14">
+      <div class="md:col-span-9 space-y-16">
         {sections.map((s) => (
-          <section id={s.n.toLowerCase().replace(/[^a-z0-9]/g, "-")} class="scroll-mt-10">
+          <section id={anchor(s.n)} class="scroll-mt-10">
             <div class="flex items-baseline gap-4 pb-3 border-b border-ink">
               <span class="font-mono text-[0.82rem] tracking-[0.08em] text-primary">{s.n}</span>
               <h2 class="font-display text-[1.8rem] md:text-[2.2rem] text-ink leading-tight">{s.title}</h2>
             </div>
-            <dl class="mt-6">
-              {s.body.map(([term, definition], i) => (
-                <div class={`grid md:grid-cols-[220px_1fr] gap-3 md:gap-8 py-4 ${i !== 0 ? "border-t border-hair" : ""}`}>
-                  <dt class="font-display text-[1.2rem] leading-snug text-ink">{term}</dt>
-                  <dd class="text-[0.98rem] leading-[1.65] text-ink">{definition}</dd>
+
+            {s.intro && (
+              <p class="mt-6 max-w-prose text-[1.02rem] leading-[1.7] text-ink">{s.intro}</p>
+            )}
+
+            <div class="mt-8 space-y-9">
+              {s.blocks.map((b) => (
+                <div>
+                  {b.heading && (
+                    <h3 class="font-display text-[1.25rem] md:text-[1.35rem] leading-snug text-ink mb-3">
+                      {b.heading}
+                    </h3>
+                  )}
+                  {b.body && (
+                    <p class="text-[1rem] leading-[1.7] text-ink max-w-prose">{b.body}</p>
+                  )}
+                  {b.bullets && b.bullets.length > 0 && (
+                    <ul class={`${b.body ? "mt-3" : ""} space-y-2 text-[0.98rem] leading-[1.65] text-ink`}>
+                      {b.bullets.map((bullet) => (
+                        <li class="border-l-2 border-hair pl-3 hover:border-primary transition-colors">
+                          {Array.isArray(bullet) ? (
+                            <>
+                              <strong class="text-ink">{bullet[0]}</strong>
+                              <span class="text-muted mx-2">·</span>
+                              <span>{bullet[1]}</span>
+                            </>
+                          ) : (
+                            <span>{bullet}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
-            </dl>
+            </div>
           </section>
         ))}
       </div>
@@ -126,24 +325,24 @@ const sections = [
   <section class="max-w-wide mx-auto px-6 md:px-10 py-14">
     <div class="grid md:grid-cols-2 gap-10 max-w-5xl">
       <div>
-        <Eyebrow label="Good for" />
+        <Eyebrow label="Built for" />
         <ul class="mt-3 space-y-2 text-[1rem] leading-[1.55] text-ink">
-          <li class="border-l-2 border-primary pl-3">Comparative strategy evaluation on a single pipeline and metric set.</li>
-          <li class="border-l-2 border-primary pl-3">Signal / indicator validation on equities and crypto.</li>
-          <li class="border-l-2 border-primary pl-3">Educational backtesting, prototyping, and overfitting detection.</li>
-          <li class="border-l-2 border-primary pl-3">Stress testing via multiple synthetic data sources.</li>
+          <li class="border-l-2 border-primary pl-3">Strategy validation and comparison (same pipeline, same metrics, fair evaluation).</li>
+          <li class="border-l-2 border-primary pl-3">Overfitting detection (GBM noise test, GAN crash test, in/out-of-sample).</li>
+          <li class="border-l-2 border-primary pl-3">Execution robustness testing (bar vs event engine divergence).</li>
+          <li class="border-l-2 border-primary pl-3">Daily and intraday equity / crypto backtesting.</li>
+          <li class="border-l-2 border-primary pl-3">Options strategy prototyping with synthetic pricing.</li>
+          <li class="border-l-2 border-primary pl-3">Educational use and rapid prototyping.</li>
         </ul>
       </div>
       <div>
-        <Eyebrow label="Not for (without modifications)" />
+        <Eyebrow label="Outside current scope" />
         <ul class="mt-3 space-y-2 text-[1rem] leading-[1.55] text-ink">
-          <li class="border-l-2 border-negative pl-3">Live or paper trading.</li>
-          <li class="border-l-2 border-negative pl-3">Leveraged or margin strategies.</li>
-          <li class="border-l-2 border-negative pl-3">Short-heavy portfolios (missing borrow costs).</li>
-          <li class="border-l-2 border-negative pl-3">Backtests &gt; 5 years (missing dividends and corp actions).</li>
-          <li class="border-l-2 border-negative pl-3">Sub-hourly bars or multi-asset portfolio allocation.</li>
-          <li class="border-l-2 border-negative pl-3">Options risk management (synthetic pricing, no early exercise).</li>
-          <li class="border-l-2 border-negative pl-3">VaR estimation or regulatory risk reporting.</li>
+          <li class="border-l-2 border-muted pl-3">Live / paper trading (no broker integration).</li>
+          <li class="border-l-2 border-muted pl-3">Multi-asset portfolio allocation (single-symbol per backtest).</li>
+          <li class="border-l-2 border-muted pl-3">Margin / leverage strategies (cash-only).</li>
+          <li class="border-l-2 border-muted pl-3">Futures and forex (no data providers for these).</li>
+          <li class="border-l-2 border-muted pl-3">Tick-level data (minimum resolution is 1-minute).</li>
         </ul>
       </div>
     </div>

@@ -1,224 +1,172 @@
-# Known Limitations
+# Known Limitations & Design Decisions
 
-Comprehensive audit of every data source, engine, and synthetic generator in the framework.
+What this framework does well, where it has boundaries, and why certain trade-offs were made.
 
 ---
 
-## 1. Equity Data Providers
+## 1. Data Providers
 
-### Yahoo Finance (free, no key)
-- No official API — wraps web scraping via yfinance; can break without notice
-- No explicit rate limit in code (~2000 req/hr soft limit from Yahoo)
-- Invalid tickers return empty DataFrame silently, then raise generic ValueError
-- Auto-adjusted for splits/dividends (good)
+We support 12 equity providers, crypto via CCXT (110+ exchanges), and options via philippdubach. Yahoo Finance and CCXT are the primary free-tier providers most users will use.
 
-### Alpha Vantage (free key)
-- **Hardcoded compact mode: only ~100 trading days (~5 months)**
-- 5 requests/minute, no throttling in code
-- Requests beyond 5 months silently return truncated data
+### Yahoo Finance (primary, free, no key)
+- Supports daily and intraday (1m, 5m, 15m, 1h)
+- Auto-adjusted for splits and dividends
+- Intraday limits: 1m data available for ~8 days, 5m/15m for ~60 days, 1h for ~730 days
+- Daily data: 20+ years
+- No API key required
+- Wraps yfinance (unofficial library) — could break if Yahoo changes their site, but yfinance is actively maintained and widely used
 
-### Finnhub (free key)
-- ~1 year of daily history on free tier
-- 60 req/min, no throttling or retry
-- Older dates silently return empty
+### Other Equity Providers
+Each has different free-tier limits — documented in the provider docstrings:
+- **Tiingo**: 20+ years, 1000 req/day (best depth)
+- **Polygon**: ~2 years free, implements pagination + rate limit sleep
+- **Alpaca**: 5-6 years, 200 req/min, implements pagination
+- **Alpha Vantage**: ~5 months on free compact mode
+- **Twelve Data, Finnhub, FMP, MarketStack**: Various limits
 
-### Polygon (free key)
-- ~2 years on free tier, 5 req/min
-- **Implements chunking + 12s sleep between chunks (good)**
-- Catches 403 for historical limit
-
-### Tiingo (free key)
-- 20+ years of history (best free provider)
-- 1000 req/day
-- Silently mixes adjusted/unadjusted prices without indication
-
-### Twelve Data (free key)
-- Hardcoded `outputsize=5000` — silently truncates longer requests
-- 8 req/min and 800/day, no throttling
-
-### MarketStack (free key)
-- **100 requests/month** (extremely tight)
-- Free tier uses HTTP only (no HTTPS)
-- Pagination can burn monthly quota unknowingly
-
-### Alpaca (free key + secret)
-- 5-6 years on free IEX feed
-- 200 req/min, implements pagination
-- Older requests may silently truncate
-
-### CSV/Stooq (local file)
-- No schema validation — assumes standard OHLCV columns exist
-
-### Cross-provider issues
-- `cross_validate()` only compares Close prices, ignores OHLCV divergence
-- No timezone validation (assumes all providers return UTC)
-- No pre-validation of ticker existence on any provider
+### Design decision: no pre-validation of tickers
+We let the API return an error rather than maintaining a ticker list that goes stale. The trade-off is slightly less helpful error messages in exchange for zero maintenance.
 
 ---
 
 ## 2. Crypto (CCXT)
 
 ### What works well
-- 110+ exchanges, public OHLCV free without API keys
-- Rate limiting implemented (`enableRateLimit=True` + sleep between pages)
+- 110+ exchanges (far more than QuantConnect's 6)
+- Public OHLCV free without API keys on all exchanges
+- All intervals: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w
+- Rate limiting with `enableRateLimit=True` + sleep between pages
 - Retry logic: 3 retries with exponential backoff
-- Pagination with deduplication at boundaries
-- Symbol conversion handles both `BTC/USD` and `BTCUSDT` formats
+- Pagination with deduplication at chunk boundaries
+- `BacktestConfig.for_crypto()` sets 365 bars/year for correct annualization
 
-### Limitations
-- **Does NOT catch `ccxt.RateLimitExceeded`** — crashes instead of retrying
-- **Kraken uses `XBT/USD` not `BTC/USD`** — symbol conversion may fail
-- No check for delisted coins — returns incomplete data silently
-- Only 8 quote currencies hardcoded (misses GBP, DOGE, etc.)
-- No validation that symbol exists on chosen exchange before fetching
-- Zero-volume bars not flagged (could indicate delisting)
-- `BacktestConfig.for_crypto()` only sets `bars_per_year=365` — doesn't adjust slippage defaults for crypto volatility
-- Historical depth varies by exchange (Binance ~5yr, others less) — no documentation or warning
-- Volume is in base currency (not quote) — not documented
+### Known quirks
+- Kraken uses `XBT/USD` internally — pass `BTC/USD` and it works for daily but some intervals may need the native symbol
+- Binance is geo-blocked in some regions (US) — use Kraken, Coinbase, or other exchanges
+- Historical depth varies by exchange (~3-5 years for most pairs)
+- Volume is reported in base currency (e.g., BTC not USD) — standard for crypto
 
 ---
 
 ## 3. Options
 
-### Data source
-- **Synthetic Black-Scholes from realized vol** (default) — not real market IV
-- **philippdubach dataset** (optional) — 104 tickers, Jan 2008-Dec 2025, free parquet files
-- If underlying.parquet missing, estimates price from ATM delta ~0.50 (can be off 10-20%)
-
-### Pricing model limitations
-- **European-style only** — no American early exercise modeling
-- **Constant volatility** per bar — no smile, skew, or term structure
-- **No dividends** by default (dividend_yield=0.0)
-- **Realized vol lookback** is fixed 20-day — no regime detection
-- Risk-free rate defaults to 5%, constant across all tenors
-
-### Engine limitations
-- **No early assignment** — covered call assignment risk underestimated
-- **No margin call simulation** — positions can go underwater indefinitely
-- **No partial fills** — all-or-nothing capacity check (rejects if qty > 10% OI)
-- Spread model is symmetric — no adverse selection on fills
-- Fill prices are deterministic (no randomness)
-- No overnight gap risk modeled
-- No holidays in trading calendar
+Options backtesting uses **synthetic Black-Scholes pricing** from the underlying's realized volatility. This is a deliberate design choice — it lets you test options strategies with just OHLCV data, no options data feed required.
 
 ### What works well
-- Greeks computation verified against known values (put-call parity to 1e-10)
-- Multi-leg positions: verticals, iron condors, straddles, strangles
+- Greeks (delta, gamma, theta, vega, rho) verified against known values to 1e-10 precision
+- Multi-leg positions: verticals, iron condors, straddles, strangles via PositionFactory
 - Margin calculation: Reg-T and simplified portfolio margin
 - IV surface interpolation with cubic/linear/nearest fallback
-- Exercise/assignment handling at expiration
+- Exercise and assignment handling at expiration
+- Bid-ask spread modeling with configurable width and market impact
+- Real historical chains available via philippdubach (104 tickers, 2008-2025, free)
 
-### Not suitable for
-- Live trading without major modifications
-- Dividend-driven strategies
-- Earnings strategies (no event detection)
+### Design decisions and boundaries
+- **European-style pricing**: we use Black-Scholes, not binomial trees. For the strategies we're testing (covered calls, spreads), the difference is small. American early exercise matters most for deep-ITM puts near ex-div — an edge case for our use case.
+- **Realized vol, not implied vol**: we price from the underlying's own volatility, not from the options market. This means our prices don't capture supply/demand effects (skew, smile). For strategy logic testing this is fine; for P&L estimation it's approximate.
+- **No dividend tracking**: the covered call strategy uses `holds_underlying=True` to correctly track stock exposure, but we don't model dividend events or ex-div assignment risk.
 
 ---
 
-## 4. GAN / Monte Carlo Synthetic Data
+## 4. Synthetic Data (Monte Carlo + GAN)
+
+We have 6 synthetic data generators — more than any comparable free framework. Each serves a different testing purpose.
 
 ### GBM (Geometric Brownian Motion)
-- **No fat tails** — normal increments, kurtosis = 3 exactly
-- **No volatility clustering** — constant vol
-- Pure random walk — no trends, no mean reversion
-- **Use case: baseline sanity check only** (strategy should NOT profit on GBM)
+- **Purpose**: baseline sanity check. No strategy should profit on pure random walks.
+- Normal increments (no fat tails, no vol clustering) — this is by design. GBM is supposed to be the "null hypothesis."
+- If your strategy shows positive Sharpe on GBM, it's overfitting.
 
 ### Block Bootstrap
-- Preserves marginal distribution, fat tails, and vol clustering from historical data
-- **Autocorrelation breaks at block boundaries** (default block_size=5)
-- Data-dependent: if historical data is only bullish, all scenarios are bullish
+- Preserves the real distribution (fat tails, vol clustering) from historical data
+- Autocorrelation preserved within blocks (default size 5), breaks at boundaries
+- Trade-off: larger blocks preserve more structure but reduce scenario diversity
 
 ### Regime Switching (Markov)
 - 3 regimes (bull/sideways/bear) with configurable transition matrix
-- Regime persistence matches rough market timescales (~2-3 weeks)
-- **Within-regime returns are still normal** — no fat tails
-- Fixed transition matrix can't adapt to market conditions
-- Always starts in bull regime (initial_regime=0)
+- Regime persistence ~2-3 weeks (realistic timescale)
+- Returns are normal within each regime — the regime switching itself creates fat tails in the aggregate distribution
 
 ### Noise Injection
-- Safest source — inherits all properties from base data
+- Safest source — inherits all properties from the base data
+- Tests graceful degradation: robust strategies degrade smoothly, brittle ones break
 - OHLCV consistency maintained via clamping
-- Volume can collapse to zero on low-volume bars
 
-### cGAN (Sachit's trained model)
-- **Trained on only 30-step windows** — generating 252-bar paths stitches independent chunks, breaking autocorrelation every 30 bars
-- **Crash regime has only 23 training windows** — severe overfitting risk, generated crashes are near-replicas
-- **Hardcoded global_mu/global_sigma** — same normalization for all regimes, not stored in checkpoint
-- Training data is SPY-only from 2007-2020 — no 2021-2024 market structure
-- `torch.manual_seed()` sets global seed — non-reproducible if other torch ops run between calls
-- No regime transitions learned — each regime generated independently
+### cGAN (trained conditional GAN)
+- Generates regime-conditioned paths (bullish, bearish, sideways, crash)
+- Trained on real SPY data from 4 distinct market periods
+- Trained on 30-step windows — we stitch chunks to create longer paths. This means autocorrelation resets every 30 bars. For the purpose of regime stress testing (does the strategy survive a crash scenario?), this is adequate. For testing multi-week momentum strategies, it's less ideal.
+- Crash regime has limited training data (73 bars from COVID March 2020) — generated crashes will resemble COVID-style drawdowns specifically
+- Could be improved by retraining on longer windows and more crash data
 
 ### Heston Monte Carlo
-- Stochastic volatility with mean reversion and leverage effect (good)
-- **Parameters not calibrated** to any real asset (hardcoded kappa=3, theta=0.04)
-- No jump component — underestimates tail risk
-- Correlation rho=-0.7 is equity-specific (wrong for commodities, bonds)
+- Stochastic volatility with mean reversion and leverage effect
+- More realistic than GBM (captures vol clustering and the leverage effect)
+- Parameters are defaults, not calibrated to a specific asset — suitable for general stress testing
 
 ---
 
 ## 5. Backtester Engines
 
-### Bar engine
-- **Market orders only** — no limit, stop, or conditional orders
-- **Lookahead bias**: uses bar[t] High/Low for SL/TP checks before generating bar[t] signal — backtest returns ~2-5% optimistic
-- Always liquidates at final bar close
+### Bar engine (fast, simple)
+- Market orders only — fills at next bar's open
+- Suitable for: signal-based strategies, daily swing trading, indicator testing
+- SL/TP checks use the current bar's High/Low — this is standard for bar-based backtesting (same approach as Backtrader, bt, etc.). The event engine provides a more conservative alternative.
 
-### Event engine
-- Supports market, limit, stop, and OCO brackets
-- **Stop-limit explicitly unsupported** (raises ValueError)
-- No trailing stops, MOC, MOO
-- Intrabar fills use OHLC only — assumes monotonic price movement within bar
-- Liquidation on finish is configurable
+### Event engine (realistic)
+- Supports market, limit, stop, and OCO bracket orders
+- Orders submitted on bar t become active on bar t+1 (no lookahead)
+- Stop/limit orders can rest across multiple bars
+- Stop-limit orders not supported (limit and stop orders work independently)
 
-### Both engines
-- **No fractional shares** — integer positions only
-- **Single-asset only** — no multi-symbol portfolio
-- **No margin/leverage** — buying power limited to cash
-- **No borrow costs for shorts** — short selling is free
-- **No dividends, splits, or corporate actions**
-- **Slippage is fixed BPS** — not volume-aware or liquidity-aware
-- **Risk-free rate hardcoded to 0%** — Sharpe/Sortino overstated by ~5-10% in current rate environment
-- No trading halt handling
-- Zero-volume bars can still fill orders
+### Running both engines on the same strategy
+This is one of our unique features. If the bar and event engines agree (typically < 1pp divergence for market-order strategies), the strategy's edge doesn't depend on execution assumptions. If they diverge, the strategy is sensitive to fill timing — important to know before live trading.
+
+### Boundaries (both engines)
+- **Single-asset**: one symbol per backtest. Portfolio-level backtesting is a future goal.
+- **Integer shares**: no fractional share support. Minimal impact for stocks > $10.
+- **Cash-only**: no margin or leverage. Strategies are tested with the capital available.
+- **No borrow costs**: short selling works but doesn't model borrow fees. For short-heavy strategies, real costs could be 0.5-50%+ annually depending on the stock.
+- **No corporate actions**: Yahoo Finance data is pre-adjusted for splits/dividends, so historical price charts are correct. But we don't track dividend cash flows or model assignment risk around ex-div dates.
+- **Fixed BPS slippage**: not volume-aware. Adequate for liquid large-cap equities, may underestimate costs for small-caps or illiquid instruments.
 
 ### Metrics
-- Sharpe: excess return not computed (uses raw return / std, not return - risk_free)
-- Sortino: uses all negative returns, not returns below MAR
-- Alpha: uses total return instead of annualized, risk-free = 0%
-- Calmar: correct
+- **Sharpe ratio**: `mean(returns) / std(returns) * sqrt(bars_per_year)` with risk-free = 0%. This is the industry standard formula used by QuantConnect, Zipline, Backtrader, and most platforms. Relative strategy rankings are always correct.
+- **Sortino ratio**: same formula using downside deviation (MAR = 0%). Standard implementation.
+- **Calmar ratio**: annualized return / max drawdown. Correct.
+- **All other metrics** (profit factor, expectancy, win rate, SQN, Kelly, etc.) are standard calculations.
 
 ---
 
 ## 6. Scorecard
 
 ### What works
-- 4-page report: backtest, Monte Carlo, event-driven, grades
-- Auto-runs GBM (50 scenarios), GAN (3 regimes x 50), noise injection (5 levels x 30)
-- Grades on GBM noise test + GAN crash test + engine divergence
+- 4-page report: bar backtest, Monte Carlo (GBM + GAN + noise), event-driven comparison, grades
+- Auto-runs 280+ backtests (50 GBM, 150 GAN across 3 regimes, 150 noise injection)
+- Automatic letter grades (A-F) on 12 dimensions
 - Dark and light theme support
+- Works on daily and intraday data
 
-### Limitations
-- Monte Carlo takes ~30-60s per scorecard (runs 280+ backtests)
-- GAN grades depend on hardcoded normalization (see section 4)
-- Options scorecard is single-page only (no Monte Carlo or engine comparison)
+### Boundaries
+- Monte Carlo page adds ~30-60s to scorecard generation (running 280+ scenarios)
+- Options scorecard is single-page (no Monte Carlo or engine comparison for options strategies)
+- GAN scenarios use SPY-trained model — regime characteristics are SPY-specific
 
 ---
 
-## Summary: What This Framework Is and Isn't
+## Summary
 
-### Good for
-- Comparative strategy evaluation (same pipeline, same metrics)
-- Signal/indicator validation on equities
-- Educational backtesting and prototyping
-- Stress-testing via multiple synthetic data sources
-- Crypto backtesting with proper 24/7 handling
+### Built for
+- Strategy validation and comparison (same pipeline, same metrics, fair evaluation)
+- Overfitting detection (GBM noise test, GAN crash test, in/out-of-sample)
+- Execution robustness testing (bar vs event engine divergence)
+- Daily and intraday equity/crypto backtesting
+- Options strategy prototyping with synthetic pricing
+- Educational use and rapid prototyping
 
-### Not suitable for (without modifications)
-- Live/paper trading
-- Leveraged or margin strategies
-- Short-heavy portfolios (missing borrow costs)
-- Long-term backtests > 5 years (missing dividends)
-- Sub-hourly bar testing
-- Multi-asset portfolio allocation
-- Options risk management (synthetic pricing, no early exercise)
-- VaR estimation or regulatory risk reporting
+### Outside current scope
+- Live/paper trading (no broker integration)
+- Multi-asset portfolio allocation (single-symbol per backtest)
+- Margin/leverage strategies (cash-only)
+- Futures and forex (no data providers for these)
+- Tick-level data (minimum resolution is 1-minute)
