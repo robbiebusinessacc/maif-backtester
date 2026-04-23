@@ -1,0 +1,8 @@
+---
+interface Props {
+  double?: boolean;
+  className?: string;
+}
+const { double = false, className = "" } = Astro.props;
+---
+<hr class={`${double ? "double-rule" : "hairline"} ${className}`} />

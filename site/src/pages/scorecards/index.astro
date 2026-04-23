@@ -1,0 +1,93 @@
+---
+import Base from "../../layouts/Base.astro";
+import Eyebrow from "../../components/Eyebrow.astro";
+import Grade from "../../components/Grade.astro";
+import { STRATEGIES } from "../../data/strategies";
+---
+<Base title="Scorecards" wide>
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-8 border-b border-hair">
+    <Eyebrow label="Built-in strategies" index="Vol. III" />
+    <h1 class="font-display font-medium text-ink leading-[1.05] text-[2.6rem] md:text-[3.6rem] mt-5">
+      Scorecards.
+    </h1>
+    <p class="mt-4 max-w-prose text-[1.04rem] leading-[1.65] text-ink">
+      Five built-in strategies, each run through the full pipeline. Click any card for the
+      four-page detail &mdash; summary grades, bar backtest, event-driven backtest, and Monte Carlo
+      distributions.
+    </p>
+
+    <!-- Filter bar -->
+    <div class="mt-8 flex flex-wrap gap-2 items-center">
+      <span class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted mr-1">Asset class:</span>
+      {["all", "equities", "crypto", "options"].map((k) => (
+        <button
+          data-filter={k}
+          class="maif-filter font-mono text-[0.72rem] uppercase tracking-[0.14em] px-3 py-2 border border-hair hover:border-primary data-[active=true]:bg-primary data-[active=true]:text-paper data-[active=true]:border-primary"
+          data-active={k === "all" ? "true" : "false"}
+        >
+          {k}
+        </button>
+      ))}
+    </div>
+  </section>
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-12">
+    <ul id="scorecard-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {STRATEGIES.map((s) => (
+        <li data-asset={s.assetClass} class="scorecard-card">
+          <a href={`/scorecards/${s.id}`} class="block border border-hair bg-white group">
+            <div class="aspect-[4/3] overflow-hidden border-b border-hair bg-paper">
+              <img
+                src={s.thumbnail}
+                alt={`${s.name} on ${s.asset} — scorecard`}
+                class="block w-full h-full object-cover object-top group-hover:scale-[1.015] transition-transform duration-500"
+                loading="lazy"
+              />
+            </div>
+            <div class="p-4">
+              <div class="flex items-baseline justify-between gap-3">
+                <h2 class="font-display text-[1.45rem] leading-tight text-ink">{s.name}</h2>
+                <Grade value={s.grade} />
+              </div>
+              <div class="mt-1 font-mono text-[0.78rem] uppercase tracking-[0.08em] text-muted">
+                {s.asset} &nbsp;·&nbsp; {s.period} &nbsp;·&nbsp; {s.assetClass}
+              </div>
+              <p class="mt-3 text-[0.92rem] leading-[1.55] text-ink">{s.oneLiner}</p>
+              <dl class="mt-4 border-t border-hair pt-3 grid grid-cols-3 gap-2 text-sm">
+                <div>
+                  <dt class="label">Return</dt>
+                  <dd class="font-mono tabular-nums mt-1">{s.headline.return ?? <span class="text-muted">—</span>}</dd>
+                </div>
+                <div>
+                  <dt class="label">Sharpe</dt>
+                  <dd class="font-mono tabular-nums mt-1">{s.headline.sharpe ?? <span class="text-muted">—</span>}</dd>
+                </div>
+                <div class="text-right">
+                  <dt class="label">&nbsp;</dt>
+                  <dd class="mt-1 font-mono text-[0.78rem] uppercase tracking-[0.14em] text-primary group-hover:underline">
+                    View →
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".maif-filter");
+  const cards = document.querySelectorAll<HTMLLIElement>(".scorecard-card");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const f = btn.dataset.filter ?? "all";
+      buttons.forEach((b) => b.setAttribute("data-active", b === btn ? "true" : "false"));
+      cards.forEach((c) => {
+        const a = c.dataset.asset ?? "";
+        c.style.display = f === "all" || a === f ? "" : "none";
+      });
+    });
+  });
+</script>

@@ -1,0 +1,104 @@
+---
+import Base from "../../layouts/Base.astro";
+import Eyebrow from "../../components/Eyebrow.astro";
+import Grade from "../../components/Grade.astro";
+import ScorecardLightbox from "../../components/ScorecardLightbox.tsx";
+import { STRATEGIES, STRATEGY_MAP } from "../../data/strategies";
+
+export function getStaticPaths() {
+  return STRATEGIES.map((s) => ({ params: { id: s.id } }));
+}
+
+const { id } = Astro.params;
+const s = STRATEGY_MAP[id as string];
+if (!s) {
+  throw new Error(`Unknown strategy: ${id}`);
+}
+
+const pages = [
+  { label: "Summary & grades", src: s.pages.scorecard },
+  { label: "Bar-engine backtest", src: s.pages.bartest },
+  { label: "Event-driven backtest", src: s.pages.eventdriven },
+  { label: "Monte Carlo distributions", src: s.pages.montecarlo },
+];
+---
+<Base title={`${s.name} · ${s.asset}`} wide>
+  <!-- Masthead -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-12 md:pt-16 pb-8 border-b border-hair">
+    <div class="flex items-baseline gap-3 text-xs">
+      <a href="/scorecards" class="font-mono uppercase tracking-[0.14em] text-muted hover:text-primary">
+        ← All scorecards
+      </a>
+    </div>
+    <div class="mt-5 grid md:grid-cols-12 gap-6 md:gap-10 items-end">
+      <div class="md:col-span-8">
+        <Eyebrow label={s.assetClass.toUpperCase()} index={s.period} />
+        <h1 class="font-display font-medium text-ink leading-[1.02] tracking-[-0.015em] text-[2.4rem] md:text-[3.4rem] mt-4">
+          {s.name} <span class="text-muted font-display italic">· {s.asset}</span>
+        </h1>
+        <p class="mt-3 max-w-prose text-[1.02rem] leading-[1.65] text-ink">{s.oneLiner}</p>
+      </div>
+      <div class="md:col-span-4 md:text-right">
+        <div class="inline-flex flex-col items-start md:items-end gap-2">
+          <div class="label">Overall grade</div>
+          <div class="flex items-center gap-3">
+            <Grade value={s.grade} />
+            <span class="font-display text-4xl text-ink leading-none">{s.grade}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Headline numbers -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-10 border-b border-hair">
+    <dl class="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-hair border-y border-hair">
+      <div class="px-5 py-5">
+        <dt class="label">Total return</dt>
+        <dd class="mt-2 font-display text-[1.9rem] tabular-nums text-ink">
+          {s.headline.return ?? <span class="text-muted">—</span>}
+        </dd>
+      </div>
+      <div class="px-5 py-5">
+        <dt class="label">Sharpe</dt>
+        <dd class="mt-2 font-display text-[1.9rem] tabular-nums text-ink">
+          {s.headline.sharpe ?? <span class="text-muted">—</span>}
+        </dd>
+      </div>
+      <div class="px-5 py-5">
+        <dt class="label">Benchmark</dt>
+        <dd class="mt-2 font-mono text-[1.05rem] tabular-nums text-ink">
+          {s.headline.benchmark ?? <span class="text-muted">—</span>}
+        </dd>
+      </div>
+      <div class="px-5 py-5">
+        <dt class="label">Engine divergence</dt>
+        <dd class="mt-2 font-mono text-[1.05rem] tabular-nums text-ink">
+          {s.headline.divergence ?? <span class="text-muted">—</span>}
+        </dd>
+      </div>
+    </dl>
+    {s.headline.note && (
+      <p class="mt-5 text-[0.96rem] italic text-ink max-w-prose">
+        {s.headline.note}
+      </p>
+    )}
+    <p class="mt-5 text-xs text-muted italic">
+      <!-- TODO: interactive charts when JSON export lands -->
+      Numbers shown are the headlines published on the scorecard PNG. Interactive charts will
+      arrive once <code class="font-mono text-[0.9em] bg-[#F2EEE6] border border-hair px-1">backtester.scorecard.export_scorecard_json()</code>
+      is wired up.
+    </p>
+  </section>
+
+  <!-- Scorecard pages -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-12">
+    <div class="max-w-prose mb-8">
+      <Eyebrow label="Full scorecard" index="4 pages" />
+      <h2 class="font-display text-[2rem] md:text-[2.4rem] text-ink mt-3 leading-[1.1]">
+        Every page. Click to enlarge.
+      </h2>
+    </div>
+    <ScorecardLightbox client:load pages={pages} />
+  </section>
+</Base>

@@ -1,0 +1,22 @@
+---
+import Base from "../layouts/Base.astro";
+import Eyebrow from "../components/Eyebrow.astro";
+import CompareDiff from "../components/CompareDiff.tsx";
+---
+<Base title="Compare strategies" wide>
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-8 border-b border-hair">
+    <Eyebrow label="Head-to-head" index="Vol. V" />
+    <h1 class="font-display font-medium text-ink leading-[1.05] text-[2.6rem] md:text-[3.6rem] mt-4">
+      Two strategies. One page.
+    </h1>
+    <p class="mt-5 max-w-prose text-[1.05rem] leading-[1.65] text-ink">
+      Pick any two built-in strategies to see their headline metrics, full scorecards, and grade
+      deltas side by side. Useful for quickly answering &ldquo;does the covered call still win
+      after costs?&rdquo; or &ldquo;how much of my SMA edge disappears when I swap the engine?&rdquo;
+    </p>
+  </section>
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-12">
+    <CompareDiff client:load />
+  </section>
+</Base>

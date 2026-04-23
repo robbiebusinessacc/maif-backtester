@@ -1,0 +1,186 @@
+---
+import Base from "../layouts/Base.astro";
+import Eyebrow from "../components/Eyebrow.astro";
+import EquityRace from "../components/EquityRace.tsx";
+---
+<Base title="A backtesting harness for MAIF" wide>
+  <!-- HERO -->
+  <section class="border-b border-hair">
+    <div class="max-w-wide mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-12 md:pb-20 grid md:grid-cols-12 gap-10 md:gap-16 items-start">
+      <div class="md:col-span-7 rise rise-1">
+        <Eyebrow label="The testing framework" index="Vol. I" />
+        <h1 class="font-display font-medium text-ink leading-[1.02] tracking-[-0.015em] text-[2.8rem] md:text-[4.2rem] mt-5 md:mt-7">
+          Would this strategy
+          <em class="font-display italic text-primary">actually</em>
+          have made money?
+        </h1>
+        <p class="mt-6 md:mt-8 text-[1.08rem] md:text-[1.14rem] leading-[1.65] text-ink max-w-prose">
+          A shared backtesting harness for the Minutemen Alternative Investment Fund. Every member's
+          strategy runs through the same pipeline — same data, same metrics, same stress tests —
+          so results are comparable instead of each person producing a different QuantConnect
+          notebook that can't be graded against anyone else's.
+        </p>
+        <div class="mt-8 md:mt-10 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <a href="/get-started" class="primary font-mono text-[0.78rem] tracking-[0.14em] uppercase border-b border-primary pb-1">
+            Run your own strategy →
+          </a>
+          <a href="/how-it-works" class="font-mono text-[0.78rem] tracking-[0.14em] uppercase text-muted border-b border-hair pb-1 hover:text-ink hover:border-ink">
+            Read the method
+          </a>
+        </div>
+      </div>
+
+      <aside class="md:col-span-5 md:pt-2 rise rise-3">
+        <div class="border border-hair bg-white p-5 md:p-6">
+          <div class="flex items-baseline justify-between border-b border-hair pb-2">
+            <div class="eyebrow"><span class="sign">§</span> Built-ins, at a glance</div>
+            <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted">n = 5</div>
+          </div>
+          <ul class="divide-y divide-hair">
+            <li class="flex items-baseline justify-between py-3">
+              <span>SMA Crossover <span class="text-muted font-mono">· SPY</span></span>
+              <span class="font-mono tabular-nums text-ink">+46.4%</span>
+            </li>
+            <li class="flex items-baseline justify-between py-3">
+              <span>Covered Call <span class="text-muted font-mono">· SPY</span></span>
+              <span class="font-mono tabular-nums text-positive">+90.1%</span>
+            </li>
+            <li class="flex items-baseline justify-between py-3">
+              <span>Buy &amp; Hold <span class="text-muted font-mono">· SPY</span></span>
+              <span class="font-mono tabular-nums text-muted">+51.0%</span>
+            </li>
+            <li class="flex items-baseline justify-between py-3">
+              <span>Turtle Trend <span class="text-muted font-mono">· SPY</span></span>
+              <span class="font-mono tabular-nums text-muted">—<!-- TODO: pull actual number --></span>
+            </li>
+            <li class="flex items-baseline justify-between py-3">
+              <span>SMA Crossover <span class="text-muted font-mono">· BTC/USD</span></span>
+              <span class="font-mono tabular-nums text-muted">—<!-- TODO: pull actual number --></span>
+            </li>
+          </ul>
+          <div class="mt-2 text-xs text-muted italic">
+            Figures from PRESENTATION.md Slide 7 where available; others pending export from the scorecard PNGs.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- CHART -->
+  <section class="border-b border-hair">
+    <div class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20 rise rise-4">
+      <div class="grid md:grid-cols-12 gap-10 items-start">
+        <header class="md:col-span-4">
+          <Eyebrow label="The equity race" index="Exhibit 01" />
+          <h2 class="font-display font-medium text-ink leading-[1.1] text-[2rem] md:text-[2.4rem] mt-4">
+            Three strategies,
+            <span class="italic text-primary">one window.</span>
+          </h2>
+          <p class="mt-4 text-[0.98rem] leading-[1.65] text-ink">
+            Representative equity curves across 2022&ndash;2025 on SPY. The covered-call writer
+            outperforms the underlying by nearly 40 percentage points; a mechanical SMA crossover
+            roughly matches buy-and-hold after frictions.
+          </p>
+          <p class="mt-3 text-[0.94rem] leading-[1.6] text-muted italic">
+            Intermediate shape is synthesized from the published endpoint returns &mdash; actual
+            per-day series ship once <code class="font-mono text-[0.84em] bg-[#F2EEE6] border border-hair px-1">export_scorecard_json()</code> lands.
+          </p>
+        </header>
+        <div class="md:col-span-8">
+          <EquityRace client:load />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THREE STRESS TESTS -->
+  <section class="border-b border-hair">
+    <div class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20">
+      <div class="max-w-prose">
+        <Eyebrow label="Three stress tests, standard" index="01 — 03" />
+        <h2 class="font-display font-medium text-ink leading-[1.1] text-[2rem] md:text-[2.6rem] mt-4">
+          Survive more than one way of being wrong.
+        </h2>
+      </div>
+
+      <ol class="mt-12 grid md:grid-cols-3 gap-y-10 md:gap-x-10 md:gap-y-0">
+        <li class="border-t border-ink pt-5">
+          <div class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-primary">§ 01</div>
+          <h3 class="font-display text-2xl text-ink mt-2 leading-tight">Monte Carlo stress</h3>
+          <p class="mt-3 text-[0.98rem] leading-[1.6] text-ink">
+            Six synthetic-data generators &mdash; GBM, block bootstrap, regime switching, noise
+            injection, Heston stochastic vol, and the trained cGAN &mdash; run automatically. If
+            a strategy shows positive Sharpe on pure GBM noise, it is overfitting.
+          </p>
+          <div class="mt-4 font-mono text-[0.78rem] tracking-[0.04em] text-muted">
+            280+ backtests · per scorecard
+          </div>
+        </li>
+        <li class="border-t border-ink pt-5">
+          <div class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-primary">§ 02</div>
+          <h3 class="font-display text-2xl text-ink mt-2 leading-tight">GAN regime scenarios</h3>
+          <p class="mt-3 text-[0.98rem] leading-[1.6] text-ink">
+            A conditional Wasserstein GAN trained on four real SPY regimes &mdash; bullish, bearish,
+            sideways, crash &mdash; generates unlimited synthetic paths that preserve regime-specific
+            volatility clustering and tail behavior.
+          </p>
+          <div class="mt-4 font-mono text-[0.78rem] tracking-[0.04em] text-muted">
+            <a href="/gan" class="hover:text-primary">See the demo →</a>
+          </div>
+        </li>
+        <li class="border-t border-ink pt-5">
+          <div class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-primary">§ 03</div>
+          <h3 class="font-display text-2xl text-ink mt-2 leading-tight">Engine divergence</h3>
+          <p class="mt-3 text-[0.98rem] leading-[1.6] text-ink">
+            Every strategy runs through both a bar-based engine (market orders at next open) and an
+            event-driven engine (stop / limit / OCO fills intrabar). If the engines disagree, the
+            strategy's edge is sensitive to execution &mdash; a flag that live results will differ.
+          </p>
+          <div class="mt-4 font-mono text-[0.78rem] tracking-[0.04em] text-muted">
+            <a href="/scorecards/bracket-spy" class="hover:text-primary">See a divergence case →</a>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- QUOTE -->
+  <section class="border-b border-hair">
+    <div class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20">
+      <blockquote class="font-display italic text-[1.6rem] md:text-[2.1rem] leading-[1.2] text-ink max-w-3xl">
+        &ldquo;The disagreement is the point. A strategy that only works under one engine, one asset,
+        or one historical window isn't a strategy &mdash; it's a fit.&rdquo;
+      </blockquote>
+      <div class="mt-4 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-muted">
+        — PRESENTATION.md, Slide 10
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-24 grid md:grid-cols-12 gap-8 items-end">
+      <div class="md:col-span-7">
+        <Eyebrow label="Plug in" index="For MAIF" />
+        <h2 class="font-display font-medium text-ink leading-[1.05] text-[2.2rem] md:text-[3rem] mt-4">
+          Write a strategy. Get a scorecard.
+        </h2>
+        <p class="mt-4 text-[1.04rem] leading-[1.65] text-ink max-w-prose">
+          Three lines of user code, one 4-page scorecard PNG, letter grades on every dimension.
+          Members bring their own logic; the framework handles data, execution, frictions, stress
+          tests, and reporting.
+        </p>
+      </div>
+      <div class="md:col-span-5 md:text-right">
+        <div class="flex md:justify-end flex-wrap gap-4">
+          <a href="/get-started" class="primary font-mono text-sm uppercase tracking-[0.14em] border border-primary px-4 py-3 hover:bg-primary hover:text-paper">
+            Open in Colab →
+          </a>
+          <a href="/scorecards" class="font-mono text-sm uppercase tracking-[0.14em] border border-ink px-4 py-3 hover:bg-ink hover:text-paper">
+            Browse scorecards
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

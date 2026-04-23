@@ -1,0 +1,87 @@
+---
+import Base from "../layouts/Base.astro";
+import Eyebrow from "../components/Eyebrow.astro";
+import GanSwitcher from "../components/GanSwitcher.tsx";
+---
+<Base title="GAN regime demo">
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-8 border-b border-hair">
+    <Eyebrow label="Synthetic data" index="Ch. IV" />
+    <h1 class="font-display font-medium text-ink leading-[1.05] text-[2.6rem] md:text-[3.6rem] mt-4">
+      A conditional GAN, <em class="font-display italic text-primary">per regime.</em>
+    </h1>
+    <p class="mt-5 max-w-prose text-[1.05rem] leading-[1.65] text-ink">
+      Monte Carlo validation that bootstraps from the same historical window can only stress-test
+      with the fat tails that window already contained. The cGAN, trained on four distinct real
+      SPY regimes, generates unlimited synthetic paths that preserve regime-specific volatility
+      clustering and tail behavior.
+    </p>
+  </section>
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-12 md:py-16">
+    <div class="grid md:grid-cols-12 gap-10 items-start">
+      <div class="md:col-span-7">
+        <GanSwitcher client:load />
+      </div>
+      <aside class="md:col-span-5 md:pt-1 max-w-prose text-[0.98rem] leading-[1.65] text-ink">
+        <Eyebrow label="Architecture" index="02" />
+        <h2 class="font-display text-[1.8rem] mt-3 leading-[1.1]">
+          Generator + discriminator, conditioned on regime label.
+        </h2>
+        <ul class="mt-5 space-y-3">
+          <li>
+            <div class="label">Generator</div>
+            <p class="mt-1">
+              Noise vector (dim 32) + regime embedding → 2-layer LSTM (hidden 256) → synthetic
+              return sequence. The regime label is fed at every timestep so the LSTM learns
+              regime-dependent dynamics, not just a shifted mean.
+            </p>
+          </li>
+          <li>
+            <div class="label">Discriminator</div>
+            <p class="mt-1">
+              Return sequence + regime embedding → 2-layer LSTM → realism score. Trained with
+              WGAN-GP (gradient penalty λ = 10) for stable convergence without mode collapse.
+            </p>
+          </li>
+          <li>
+            <div class="label">Training</div>
+            <p class="mt-1 font-mono text-[0.88rem] tabular-nums">
+              1,000 epochs &nbsp;·&nbsp; 5 critic updates / generator step
+            </p>
+          </li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <hr class="double-rule" />
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20">
+    <div class="max-w-prose">
+      <Eyebrow label="What bootstrap can't do" index="03" />
+      <h2 class="font-display text-[2rem] md:text-[2.4rem] mt-3 leading-[1.1]">
+        The properties the GAN preserves.
+      </h2>
+      <div class="mt-6 space-y-4 text-[1.02rem] leading-[1.7] text-ink">
+        <p>
+          <strong>Volatility clustering.</strong> Autocorrelation of squared returns matches real
+          data (verified via ACF plots). Bootstrapped blocks break clustering at block boundaries.
+        </p>
+        <p>
+          <strong>Fat tails.</strong> Excess kurtosis is preserved per regime, not washed out by
+          averaging across market environments.
+        </p>
+        <p>
+          <strong>Regime conditioning.</strong> Ask the model for a thousand crash scenarios and it
+          generates paths with COVID-like drawdown dynamics, not generic noise with a negative
+          drift.
+        </p>
+      </div>
+      <p class="mt-8 text-sm text-muted italic">
+        Honest caveats in <a href="/limitations" class="primary">Limitations §4</a>:
+        the crash regime has only 23 training windows, and the 252-bar paths shown here stitch
+        together independent 30-step chunks &mdash; autocorrelation breaks every 30 bars.
+      </p>
+    </div>
+  </section>
+</Base>

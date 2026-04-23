@@ -1,0 +1,154 @@
+---
+import Base from "../layouts/Base.astro";
+import Eyebrow from "../components/Eyebrow.astro";
+
+const quickstart = `"""
+QUICKSTART: Add your own strategy and get a full scorecard.
+"""
+
+from datetime import date
+import pandas as pd
+from strategy.base import Strategy, Signal
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# STEP 1: Write your strategy
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class MyStrategy(Strategy):
+
+    @property
+    def name(self) -> str:
+        return "My Strategy"
+
+    def generate_signals(self, df: pd.DataFrame) -> pd.Series:
+        signals = pd.Series(Signal.HOLD, index=df.index)
+
+        # ── YOUR LOGIC HERE ────────────────────────────────
+        # Example: buy when 10-day SMA crosses above 30-day SMA
+        fast = df["Close"].rolling(10).mean()
+        slow = df["Close"].rolling(30).mean()
+
+        for i in range(1, len(df)):
+            if fast.iloc[i] > slow.iloc[i] and fast.iloc[i-1] <= slow.iloc[i-1]:
+                signals.iloc[i] = Signal.BUY
+            elif fast.iloc[i] < slow.iloc[i] and fast.iloc[i-1] >= slow.iloc[i-1]:
+                signals.iloc[i] = Signal.SELL
+        # ───────────────────────────────────────────────────
+
+        return signals
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# STEP 2: Fetch data and generate your scorecard
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from data_layer import DataLayer, YahooFinanceProvider
+from backtester import BacktestConfig, generate_scorecard, EventDrivenBacktester
+
+dl = DataLayer()
+dl.add_provider(YahooFinanceProvider())
+df = dl.fetch("SPY", date(2022, 1, 1), date(2025, 12, 31))
+
+config = BacktestConfig(
+    initial_capital=100_000,
+    commission_per_order=1.00,
+    slippage_bps=2.0,
+)
+
+ed_result = EventDrivenBacktester(config).run(MyStrategy(), df)
+
+generate_scorecard(
+    strategy=MyStrategy(),
+    df=df,
+    config=config,
+    output_path="my_scorecard.png",
+    event_driven_results={"result": ed_result},
+)`;
+---
+<Base title="Get started">
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-8 border-b border-hair">
+    <Eyebrow label="For MAIF members" index="Ch. VI" />
+    <h1 class="font-display font-medium text-ink leading-[1.02] text-[2.6rem] md:text-[3.8rem] mt-4">
+      Three lines of user code.
+    </h1>
+    <p class="mt-5 max-w-prose text-[1.06rem] leading-[1.65] text-ink">
+      Plug your strategy into the pipeline and get back a four-page scorecard. The framework
+      handles position sizing, execution, frictions, Monte Carlo, engine cross-validation, and
+      reporting. You bring the logic.
+    </p>
+  </section>
+
+  <!-- Options row -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-12">
+    <div class="grid md:grid-cols-2 gap-6">
+      <a href="#" class="block border border-primary bg-primary/5 p-6 md:p-8 group hover:bg-primary hover:text-paper transition-colors">
+        <!-- TODO: real Colab URL once notebook is published -->
+        <div class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-primary group-hover:text-paper">Recommended</div>
+        <h2 class="font-display text-[1.8rem] md:text-[2.1rem] leading-tight mt-2">
+          Open in Colab →
+        </h2>
+        <p class="mt-3 text-[0.98rem] leading-[1.6]">
+          Runs in your browser. Free GPU when the GAN stress test fires. No install. The notebook
+          clones the repo, installs dependencies, and has a <code class="font-mono text-[0.88em] bg-black/5 group-hover:bg-white/10 px-1 border border-current/10">TODO</code>
+          comment where your code goes.
+        </p>
+      </a>
+      <a href="#" class="block border border-hair bg-white p-6 md:p-8 group hover:border-ink">
+        <!-- TODO: real GitHub URL -->
+        <div class="font-mono text-[0.72rem] uppercase tracking-[0.18em] text-muted">Advanced</div>
+        <h2 class="font-display text-[1.8rem] md:text-[2.1rem] leading-tight mt-2">
+          Clone from GitHub →
+        </h2>
+        <p class="mt-3 text-[0.98rem] leading-[1.6] text-ink">
+          Run locally against your own data providers, API keys, and strategy library. Recommended
+          if you're serious about iterating &mdash; Colab is for the first pass.
+        </p>
+        <pre class="mt-4 font-mono text-[0.82rem] bg-[#F2EEE6] border border-hair p-3 overflow-x-auto"><code>git clone &lt;repo&gt;
+pip install -r requirements.txt
+python3 quickstart.py</code></pre>
+      </a>
+    </div>
+  </section>
+
+  <hr class="hairline" />
+
+  <!-- Code -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14">
+    <div class="grid md:grid-cols-12 gap-8">
+      <header class="md:col-span-4">
+        <Eyebrow label="quickstart.py" index="01" />
+        <h2 class="font-display text-[2rem] md:text-[2.3rem] mt-3 leading-[1.1]">
+          The whole thing.
+        </h2>
+        <p class="mt-3 text-[0.98rem] leading-[1.6] text-ink">
+          A full example, end to end. Copy, replace <code class="font-mono text-[0.88em] bg-[#F2EEE6] border border-hair px-1">MyStrategy</code>
+          with your own logic, and run. The output is <code class="font-mono text-[0.88em] bg-[#F2EEE6] border border-hair px-1">my_scorecard.png</code>
+          in the current directory.
+        </p>
+      </header>
+      <div class="md:col-span-8">
+        <pre class="bg-[#F2EEE6] border border-hair p-5 md:p-6 overflow-x-auto font-mono text-[0.82rem] leading-[1.65]"><code>{quickstart}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="hairline" />
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14">
+    <div class="max-w-prose">
+      <Eyebrow label="Next" index="02" />
+      <h2 class="font-display text-[2rem] mt-3 leading-[1.1]">If the scorecard looks good …</h2>
+      <p class="mt-4 text-[1rem] leading-[1.65] text-ink">
+        The framework is explicitly the upstream filter, not the destination. If a strategy
+        survives the scorecard &mdash; passes the GBM noise test, holds up in GAN crash scenarios,
+        and shows low engine divergence &mdash; port it to QuantConnect for production-grade costs,
+        real survivorship-free data, and live brokerage integration.
+      </p>
+      <p class="mt-3 text-sm text-muted italic">
+        See <a href="/how-it-works#vs-quantconnect" class="primary">How it works</a> for the full
+        comparison.
+      </p>
+    </div>
+  </section>
+</Base>

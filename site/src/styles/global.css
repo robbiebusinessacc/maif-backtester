@@ -1,0 +1,307 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: #FAF7F2;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  color: #0F0F0F;
+  background: #FAF7F2;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: #881C1C;
+  color: #FAF7F2;
+}
+
+/* Tabular numerals wherever we show data */
+.tabular,
+table,
+.metric,
+.ticker {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Editorial drop cap for article openers */
+.dropcap::first-letter {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 500;
+  float: left;
+  font-size: 4.2rem;
+  line-height: 0.9;
+  margin: 0.35rem 0.6rem 0 0;
+  color: #881C1C;
+}
+
+/* Hairline rule utility — single source of truth */
+.hairline {
+  border: 0;
+  border-top: 1px solid #E8E4DE;
+  margin: 0;
+}
+
+.double-rule {
+  border: 0;
+  border-top: 1px solid #E8E4DE;
+  border-bottom: 1px solid #E8E4DE;
+  height: 4px;
+  margin: 0;
+}
+
+/* Link treatment — underline on hover, no bright blue */
+a {
+  color: inherit;
+  text-decoration: none;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration: underline;
+  text-decoration-color: #881C1C;
+}
+a.primary {
+  color: #881C1C;
+}
+a.primary:hover {
+  color: #5F1111;
+}
+
+/* Eyebrow label — small caps mono */
+.eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #881C1C;
+  font-weight: 500;
+}
+.eyebrow .sign {
+  color: #881C1C;
+  margin-right: 0.4em;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 1.15em;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Prose defaults for MDX-ish content pages */
+.prose-maif h2 {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 500;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  margin-top: 3rem;
+  margin-bottom: 0.8rem;
+  letter-spacing: -0.01em;
+}
+.prose-maif h3 {
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 500;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+.prose-maif p,
+.prose-maif li {
+  font-size: 1.02rem;
+  line-height: 1.65;
+  color: #0F0F0F;
+}
+.prose-maif p + p {
+  margin-top: 1.1rem;
+}
+.prose-maif ul {
+  margin-top: 0.8rem;
+  margin-bottom: 0.8rem;
+  padding-left: 1.1rem;
+  list-style: none;
+}
+.prose-maif ul li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.35rem;
+}
+.prose-maif ul li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: #881C1C;
+}
+.prose-maif strong {
+  font-weight: 600;
+}
+.prose-maif em {
+  font-style: italic;
+  color: #0F0F0F;
+}
+.prose-maif blockquote {
+  border-left: 2px solid #881C1C;
+  padding: 0.2rem 0 0.2rem 1rem;
+  margin: 1.4rem 0;
+  font-family: "Cormorant Garamond", serif;
+  font-style: italic;
+  font-size: 1.2rem;
+  color: #0F0F0F;
+}
+.prose-maif code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.88em;
+  background: #F2EEE6;
+  padding: 0.08em 0.34em;
+  border: 1px solid #E8E4DE;
+}
+.prose-maif pre {
+  background: #F2EEE6;
+  border: 1px solid #E8E4DE;
+  padding: 1.1rem 1.2rem;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  margin: 1.3rem 0;
+}
+.prose-maif pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.prose-maif table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.3rem 0;
+  font-size: 0.94rem;
+}
+.prose-maif th,
+.prose-maif td {
+  border-bottom: 1px solid #E8E4DE;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.prose-maif th {
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8B8680;
+  border-bottom: 1px solid #0F0F0F;
+}
+.prose-maif td:not(:first-child),
+.prose-maif th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grade pill base */
+.grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.8rem;
+  height: 1.6rem;
+  padding: 0 0.45rem;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  border: 1px solid #0F0F0F;
+  color: #0F0F0F;
+  background: transparent;
+}
+.grade--a {
+  background: #881C1C;
+  color: #FAF7F2;
+  border-color: #881C1C;
+}
+.grade--b {
+  background: transparent;
+  color: #881C1C;
+  border-color: #881C1C;
+}
+.grade--c {
+  background: transparent;
+  color: #0F0F0F;
+  border-color: #0F0F0F;
+}
+.grade--d {
+  background: transparent;
+  color: #8B8680;
+  border-color: #8B8680;
+}
+.grade--f {
+  background: #C62828;
+  color: #FAF7F2;
+  border-color: #C62828;
+}
+
+/* Scorecard figure on detail page */
+.scorecard-figure {
+  border: 1px solid #E8E4DE;
+  background: #FFFFFF;
+  overflow: hidden;
+}
+
+/* Paper edge — a faint serif-y vertical hair next to content columns on wide screens */
+@media (min-width: 1024px) {
+  .left-mark::before {
+    content: "";
+    position: absolute;
+    left: -28px;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: #E8E4DE;
+  }
+}
+
+/* Utility: tabular small-caps inline label */
+.label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8B8680;
+}
+
+/* Subtle focus ring — keep accessible without looking like a startup */
+:focus-visible {
+  outline: 2px solid #881C1C;
+  outline-offset: 2px;
+}
+
+/* Fade animation used by GAN switcher */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in {
+  animation: fade-in 420ms ease-out;
+}
+
+/* Staggered reveal for hero */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise {
+  animation: rise 620ms cubic-bezier(0.2, 0.7, 0.1, 1) both;
+}
+.rise-1 { animation-delay: 0ms; }
+.rise-2 { animation-delay: 120ms; }
+.rise-3 { animation-delay: 240ms; }
+.rise-4 { animation-delay: 360ms; }
+.rise-5 { animation-delay: 480ms; }

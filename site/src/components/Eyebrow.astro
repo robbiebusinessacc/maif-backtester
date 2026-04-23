@@ -1,0 +1,12 @@
+---
+interface Props {
+  label: string;
+  index?: string;
+}
+const { label, index } = Astro.props;
+---
+<div class="eyebrow flex items-baseline gap-2">
+  <span class="sign">§</span>
+  {index && <span class="text-muted">{index}</span>}
+  <span>{label}</span>
+</div>

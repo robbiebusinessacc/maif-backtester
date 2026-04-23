@@ -1,0 +1,19 @@
+---
+interface Props {
+  value: string;
+  label?: string;
+}
+const { value, label } = Astro.props;
+const letter = value.trim().charAt(0).toUpperCase();
+const variant =
+  letter === "A" ? "grade--a"
+  : letter === "B" ? "grade--b"
+  : letter === "C" ? "grade--c"
+  : letter === "D" ? "grade--d"
+  : letter === "F" ? "grade--f"
+  : "";
+---
+<span class="inline-flex items-center gap-2">
+  {label && <span class="label">{label}</span>}
+  <span class={`grade ${variant}`}>{value}</span>
+</span>

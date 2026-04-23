@@ -1,0 +1,35 @@
+---
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const links = [
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/scorecards", label: "Scorecards" },
+  { href: "/gan", label: "GAN" },
+  { href: "/compare", label: "Compare" },
+  { href: "/get-started", label: "Get started" },
+  { href: "/limitations", label: "Limitations" },
+  { href: "/team", label: "Team" },
+];
+---
+<header class="border-b border-hair bg-paper">
+  <div class="max-w-wide mx-auto px-6 md:px-10 py-5 flex items-end justify-between gap-6">
+    <a href="/" class="flex items-end gap-3 group" aria-label="MAIF Testing Framework home">
+      <img src="/brand/maif_logo.png" alt="" class="h-9 md:h-10 w-auto" />
+      <span class="hidden md:block text-[0.68rem] tracking-eyebrow uppercase text-muted font-mono leading-tight pb-1 border-l border-hair pl-3">
+        Testing<br />Framework
+      </span>
+    </a>
+    <nav class="flex flex-wrap items-center justify-end gap-x-5 gap-y-1 text-sm">
+      {links.map((l) => {
+        const active = path === l.href;
+        return (
+          <a
+            href={l.href}
+            class={`whitespace-nowrap pb-[2px] border-b ${active ? "border-primary text-ink" : "border-transparent text-ink hover:border-primary"}`}
+          >
+            {l.label}
+          </a>
+        );
+      })}
+    </nav>
+  </div>
+</header>

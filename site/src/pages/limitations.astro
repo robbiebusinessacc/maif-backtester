@@ -1,0 +1,151 @@
+---
+import Base from "../layouts/Base.astro";
+import Eyebrow from "../components/Eyebrow.astro";
+
+const sections = [
+  {
+    n: "§ 01",
+    title: "Equity data providers",
+    body: [
+      ["Yahoo Finance", "No official API; wraps yfinance scraping. Can break without notice. No rate limit in code (~2,000 req/hr soft limit). Invalid tickers return empty DataFrames silently, then raise a generic ValueError."],
+      ["Alpha Vantage", "Hardcoded compact mode caps history at ~100 trading days. Requests beyond ~5 months silently return truncated data. 5 req/min, no throttling."],
+      ["Finnhub", "~1 year of daily history on the free tier. Older dates return empty silently."],
+      ["Polygon", "~2 years on free tier, 5 req/min. Chunking + 12s sleep between chunks is implemented. Catches 403 for the historical limit."],
+      ["Tiingo", "20+ years of history — best free provider. Silently mixes adjusted and unadjusted prices without indication."],
+      ["Twelve Data", "Hardcoded outputsize=5000 silently truncates longer requests."],
+      ["MarketStack", "100 requests/month free (extremely tight). HTTP only on free tier (no HTTPS)."],
+      ["Alpaca", "5–6 years on the free IEX feed. 200 req/min, paginated."],
+      ["Cross-provider", "cross_validate() only compares Close prices, ignores OHLCV divergence. No timezone validation. No pre-validation that a ticker exists on any provider."],
+    ],
+  },
+  {
+    n: "§ 02",
+    title: "Crypto (CCXT)",
+    body: [
+      ["Works well", "110+ exchanges, free public OHLCV, rate limiting enabled, 3 retries with exponential backoff, pagination with deduplication at boundaries. Symbol conversion handles both BTC/USD and BTCUSDT formats."],
+      ["Does not catch RateLimitExceeded", "Crashes rather than retrying when the exchange throws ccxt.RateLimitExceeded."],
+      ["Kraken naming", "Kraken uses XBT/USD, not BTC/USD. Symbol conversion can fail."],
+      ["Silent gaps", "No check for delisted coins. Zero-volume bars are not flagged. Historical depth varies by exchange (Binance ~5yr, others less) with no documentation."],
+    ],
+  },
+  {
+    n: "§ 03",
+    title: "Options",
+    body: [
+      ["Pricing", "European-style only — no American early exercise modeling. Constant volatility per bar — no smile, skew, or term structure. No dividends by default. Risk-free rate constant at 5% across tenors."],
+      ["Data", "Synthetic Black-Scholes from realized vol is the default. Optional philippdubach parquet dataset covers 104 tickers back to Jan 2008. If underlying.parquet is missing, price is estimated from ATM delta ~0.50 (can be off 10–20%)."],
+      ["Engine", "No early assignment, no margin call simulation, no partial fills. Fill prices deterministic — no randomness. No overnight gap risk. No trading calendar holidays."],
+      ["Good parts", "Greeks verified against known values (put-call parity to 1e-10). Multi-leg positions supported. Reg-T and simplified portfolio margin implemented. IV surface interpolation with cubic / linear / nearest fallback."],
+    ],
+  },
+  {
+    n: "§ 04",
+    title: "GAN & Monte Carlo synthetic data",
+    body: [
+      ["GBM", "Normal increments, kurtosis = 3. No fat tails, no volatility clustering. Use as a sanity baseline — a strategy should NOT profit on GBM."],
+      ["Block bootstrap", "Preserves marginal distribution, fat tails, and vol clustering. Autocorrelation breaks at block boundaries (default block_size=5). Data-dependent — if the source window is bullish, every scenario is bullish."],
+      ["Regime switching (Markov)", "Three regimes, configurable transition matrix. Within-regime returns are still normal (no fat tails). Fixed transition matrix can't adapt."],
+      ["Noise injection", "Safest source — inherits all properties from base data. Volume can collapse to zero on low-volume bars."],
+      ["cGAN", "Trained on 30-step windows only. 252-bar paths stitch independent chunks, breaking autocorrelation every 30 bars. Crash regime has only 23 training windows → severe overfitting risk. Global μ / σ hardcoded, not stored in checkpoint. SPY-only 2007–2020 — no 2021+ market structure."],
+      ["Heston", "Parameters κ=3, θ=0.04 not calibrated to any real asset. No jumps → underestimates tail risk. Correlation ρ = −0.7 is equity-specific (wrong for commodities, bonds)."],
+    ],
+  },
+  {
+    n: "§ 05",
+    title: "Backtester engines",
+    body: [
+      ["Bar engine", "Market orders only. Known lookahead: uses bar[t] High/Low for SL/TP before generating bar[t] signal — returns ~2–5% optimistic. Liquidates at final bar close."],
+      ["Event engine", "Market, limit, stop, and OCO brackets. Stop-limit explicitly unsupported (raises ValueError). No trailing stops, MOC, or MOO. Intrabar fills assume monotonic OHLC movement."],
+      ["Both engines", "No fractional shares. Single-asset only. No margin / leverage. Shorts are free (no borrow costs). No dividends, splits, or corporate actions. Slippage is fixed BPS — not volume-aware."],
+      ["Metrics", "Sharpe uses raw return (not excess) — overstated ~5–10% in current rate environment. Sortino uses all negative returns, not returns below MAR. Alpha uses total return, risk-free = 0%. Calmar is correct."],
+    ],
+  },
+  {
+    n: "§ 06",
+    title: "Scorecard",
+    body: [
+      ["Works", "Four-page PNG report. Auto-runs GBM (50 scenarios), GAN (3 regimes × 50), noise injection (5 levels × 30). Grades on GBM noise test + GAN crash test + engine divergence."],
+      ["Cost", "Monte Carlo takes ~30–60s per scorecard (280+ backtests)."],
+      ["Options", "Options scorecard is single-page only — no Monte Carlo or engine comparison on that path yet."],
+    ],
+  },
+];
+---
+<Base title="Limitations">
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-10 border-b border-hair">
+    <Eyebrow label="Honest audit" index="Appendix" />
+    <h1 class="font-display font-medium text-ink leading-[1.02] text-[2.6rem] md:text-[3.8rem] mt-4">
+      What this framework <em class="italic text-primary">isn't.</em>
+    </h1>
+    <p class="mt-5 max-w-prose text-[1.05rem] leading-[1.7] text-ink dropcap">
+      Published in full on the site because any backtester that doesn't advertise its assumptions
+      is selling optimism. Every data source, pricing model, execution engine, and grading input
+      has a specific failure mode. The sections below enumerate them without hedging.
+    </p>
+    <p class="mt-5 max-w-prose text-[0.96rem] leading-[1.65] text-muted italic">
+      Source of truth: <code class="font-mono text-[0.92em] bg-[#F2EEE6] border border-hair px-1">LIMITATIONS.md</code>
+      in the framework repository. If anything here disagrees with the repo, the repo wins.
+    </p>
+  </section>
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20">
+    <div class="grid md:grid-cols-12 gap-10">
+      <nav class="md:col-span-3 md:sticky md:top-8 md:self-start text-sm space-y-2">
+        <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted mb-2">On this page</div>
+        {sections.map((s) => (
+          <a href={`#${s.n.toLowerCase().replace(/[^a-z0-9]/g, "-")}`} class="block text-ink hover:text-primary border-l border-hair pl-3 hover:border-primary py-1">
+            <span class="font-mono text-[0.72rem] tracking-[0.08em] text-muted mr-2">{s.n}</span>
+            {s.title}
+          </a>
+        ))}
+      </nav>
+
+      <div class="md:col-span-9 space-y-14">
+        {sections.map((s) => (
+          <section id={s.n.toLowerCase().replace(/[^a-z0-9]/g, "-")} class="scroll-mt-10">
+            <div class="flex items-baseline gap-4 pb-3 border-b border-ink">
+              <span class="font-mono text-[0.82rem] tracking-[0.08em] text-primary">{s.n}</span>
+              <h2 class="font-display text-[1.8rem] md:text-[2.2rem] text-ink leading-tight">{s.title}</h2>
+            </div>
+            <dl class="mt-6">
+              {s.body.map(([term, definition], i) => (
+                <div class={`grid md:grid-cols-[220px_1fr] gap-3 md:gap-8 py-4 ${i !== 0 ? "border-t border-hair" : ""}`}>
+                  <dt class="font-display text-[1.2rem] leading-snug text-ink">{term}</dt>
+                  <dd class="text-[0.98rem] leading-[1.65] text-ink">{definition}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <hr class="hairline" />
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14">
+    <div class="grid md:grid-cols-2 gap-10 max-w-5xl">
+      <div>
+        <Eyebrow label="Good for" />
+        <ul class="mt-3 space-y-2 text-[1rem] leading-[1.55] text-ink">
+          <li class="border-l-2 border-primary pl-3">Comparative strategy evaluation on a single pipeline and metric set.</li>
+          <li class="border-l-2 border-primary pl-3">Signal / indicator validation on equities and crypto.</li>
+          <li class="border-l-2 border-primary pl-3">Educational backtesting, prototyping, and overfitting detection.</li>
+          <li class="border-l-2 border-primary pl-3">Stress testing via multiple synthetic data sources.</li>
+        </ul>
+      </div>
+      <div>
+        <Eyebrow label="Not for (without modifications)" />
+        <ul class="mt-3 space-y-2 text-[1rem] leading-[1.55] text-ink">
+          <li class="border-l-2 border-negative pl-3">Live or paper trading.</li>
+          <li class="border-l-2 border-negative pl-3">Leveraged or margin strategies.</li>
+          <li class="border-l-2 border-negative pl-3">Short-heavy portfolios (missing borrow costs).</li>
+          <li class="border-l-2 border-negative pl-3">Backtests &gt; 5 years (missing dividends and corp actions).</li>
+          <li class="border-l-2 border-negative pl-3">Sub-hourly bars or multi-asset portfolio allocation.</li>
+          <li class="border-l-2 border-negative pl-3">Options risk management (synthetic pricing, no early exercise).</li>
+          <li class="border-l-2 border-negative pl-3">VaR estimation or regulatory risk reporting.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</Base>

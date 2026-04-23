@@ -1,0 +1,153 @@
+---
+import Base from "../layouts/Base.astro";
+import Eyebrow from "../components/Eyebrow.astro";
+---
+<Base title="How it works">
+  <section class="max-w-wide mx-auto px-6 md:px-10 pt-14 md:pt-20 pb-10">
+    <Eyebrow label="Method" index="Ch. II" />
+    <h1 class="font-display font-medium text-ink leading-[1.05] text-[2.6rem] md:text-[3.8rem] mt-5 max-w-4xl">
+      A pipeline, not a script.
+    </h1>
+    <p class="mt-5 max-w-prose text-[1.08rem] leading-[1.7] text-ink">
+      Most retail traders test strategies with a spreadsheet or a one-off Python script. That
+      process leaks lookahead bias, invites overfitting, and ignores frictions. The framework is
+      an opinionated harness that forces an honest answer to a single question.
+    </p>
+  </section>
+
+  <hr class="hairline" />
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14">
+    <div class="grid md:grid-cols-12 gap-10">
+      <header class="md:col-span-4">
+        <Eyebrow label="The five stages" index="01" />
+        <h2 class="font-display text-[2rem] md:text-[2.3rem] mt-3 leading-[1.12]">
+          Strategy in, scorecard out.
+        </h2>
+      </header>
+      <div class="md:col-span-8">
+        <ol class="space-y-0">
+          {[
+            {
+              n: "01",
+              t: "Strategy interface",
+              b: "Every strategy subclasses the same Strategy base class. Signal mode returns BUY / SELL / HOLD per bar; target-position mode specifies exact sizes (including shorts and partials). The framework takes care of sizing, execution, and reporting from there.",
+            },
+            {
+              n: "02",
+              t: "Data layer",
+              b: "Equities via Yahoo, Alpaca, Polygon, Tiingo, and more. Crypto via CCXT (110+ exchanges, public OHLCV without API keys). Options via synthetic Black-Scholes or the free philippdubach chains dataset back to 2008.",
+            },
+            {
+              n: "03",
+              t: "Dual execution engines",
+              b: "Every run executes twice. The bar engine replays daily OHLCV with market orders at next open. The event engine replays the same bars as order-book events, filling stop / limit / OCO intrabar. If the PnL diverges, the strategy is execution-sensitive.",
+            },
+            {
+              n: "04",
+              t: "Monte Carlo stressors",
+              b: "Six generators run automatically: geometric Brownian motion (sanity baseline), block bootstrap, Markov regime switching, noise injection, Heston stochastic volatility, and a trained cGAN conditioned on four real SPY regimes.",
+            },
+            {
+              n: "05",
+              t: "Standardized scorecard",
+              b: "A four-page PNG: equity curve and trade stats; Monte Carlo distributions; bar-vs-event comparison; letter grades across performance, risk, trade quality, and robustness. Same output format for every strategy, every member, every semester.",
+            },
+          ].map((s, i) => (
+            <li class={`py-6 ${i !== 0 ? "border-t border-hair" : ""}`}>
+              <div class="grid grid-cols-[auto_1fr] gap-5">
+                <div class="font-mono text-[0.82rem] tracking-[0.08em] text-primary pt-1">{s.n}</div>
+                <div>
+                  <h3 class="font-display text-2xl md:text-[1.7rem] leading-tight text-ink">{s.t}</h3>
+                  <p class="mt-2 text-[1rem] leading-[1.65] text-ink">{s.b}</p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <hr class="double-rule" />
+
+  <!-- BAR VS EVENT -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14">
+    <div class="grid md:grid-cols-12 gap-10">
+      <header class="md:col-span-4">
+        <Eyebrow label="The divergence test" index="02" />
+        <h2 class="font-display text-[2rem] md:text-[2.3rem] mt-3 leading-[1.1]">
+          Bar vs. event, side by side.
+        </h2>
+        <p class="mt-3 text-[0.98rem] leading-[1.65] text-ink max-w-sm">
+          The part most non-quant audiences don't see. Two engines exist because stop orders can
+          fire intrabar and bar engines can't model that. Running both and measuring the gap is
+          the cheapest form of robustness check.
+        </p>
+      </header>
+      <div class="md:col-span-8 grid sm:grid-cols-2 gap-6">
+        <div class="border border-hair bg-white p-5">
+          <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted">Engine A</div>
+          <h3 class="font-display text-xl text-ink mt-1">Bar-based</h3>
+          <p class="mt-3 text-[0.95rem] leading-[1.6] text-ink">
+            Replays daily OHLCV. Every order becomes &ldquo;buy at tomorrow's open.&rdquo; Fast,
+            simple, sufficient for swing and position strategies &mdash; but fundamentally cannot
+            model a stop-loss triggering intraday.
+          </p>
+        </div>
+        <div class="border border-hair bg-white p-5">
+          <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted">Engine B</div>
+          <h3 class="font-display text-xl text-ink mt-1">Event-driven</h3>
+          <p class="mt-3 text-[0.95rem] leading-[1.6] text-ink">
+            Replays the same bars as order-book events. Stop orders fire intrabar at the trigger
+            price. Bracket exits (OCO stop-loss plus take-profit) are real. Captures what the bar
+            engine cannot.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="hairline" />
+
+  <!-- QUOTE -->
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20">
+    <blockquote class="font-display italic text-[1.6rem] md:text-[2rem] leading-[1.25] text-ink max-w-3xl">
+      &ldquo;If a strategy performs well on one data source but poorly on another, that's a red flag
+      &mdash; the strategy might be fitting to quirks in the data rather than real market dynamics.&rdquo;
+    </blockquote>
+    <div class="mt-4 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-muted">
+      — roles.md &nbsp;·&nbsp; Data Layer section
+    </div>
+  </section>
+
+  <hr class="hairline" />
+
+  <section class="max-w-wide mx-auto px-6 md:px-10 py-14 md:py-20">
+    <div class="grid md:grid-cols-12 gap-10">
+      <header class="md:col-span-4">
+        <Eyebrow label="Vs. the alternative" index="03" />
+        <h2 class="font-display text-[2rem] md:text-[2.3rem] mt-3 leading-[1.12]">
+          Not a replacement for QuantConnect &mdash; its upstream filter.
+        </h2>
+      </header>
+      <div class="md:col-span-8 max-w-prose text-[1rem] leading-[1.7] text-ink space-y-4">
+        <p>
+          QuantConnect is better for production: real survivorship-bias-free equity data since 1998,
+          tick-resolution, brokerage-specific fees, live trading through fifteen integrations.
+          The framework is not competing with any of that.
+        </p>
+        <p>
+          What the framework does that QuantConnect doesn't: Monte Carlo stress testing, GAN
+          regime scenarios, engine divergence analysis, automatic letter grading. So the intended
+          workflow is sequential. Prototype here; only port the strategies that survive to
+          QuantConnect for production.
+        </p>
+        <p class="italic text-muted">
+          See <a href="/limitations" class="primary">Limitations</a> for an honest audit of what
+          this framework is and isn't.
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>

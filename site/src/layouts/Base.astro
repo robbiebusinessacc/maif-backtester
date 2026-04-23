@@ -1,0 +1,39 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  wide?: boolean;
+}
+
+const {
+  title,
+  description = "MAIF Testing Framework — a shared backtesting harness for strategy comparison at the Minutemen Alternative Investment Fund.",
+  wide = false,
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/png" href="/brand/maif_logo.png" />
+    <title>{title} · MAIF Testing Framework</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={`${title} · MAIF Testing Framework`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/scorecards/report_scorecard.png" />
+    <meta name="theme-color" content="#881C1C" />
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <Header />
+    <main class={`flex-1 ${wide ? "" : ""}`}>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
