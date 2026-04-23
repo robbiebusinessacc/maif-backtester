@@ -2,27 +2,53 @@
 import Base from "../layouts/Base.astro";
 import Eyebrow from "../components/Eyebrow.astro";
 
+// Attribution reflects actual authorship per the git history of the upstream
+// repo at github.com/sachittumuluri/TestingFramework — not the aspirational
+// role split in README.md / roles.md. See commits:
+//   1e6141f Robert Walmsley · Initial commit: Strategy testing framework
+//   2e37013 Sachit Tumuluri  · PR #1 — event-driven engine
+//   f4361dd Connor McLaughlin · Added GANs and GBM for monte carlo noise
+//   c134710 Connor McLaughlin · Saved global mu/sigma, generator notebook
+
 const team = [
   {
     initials: "RW",
     name: "Robbie",
-    role: "Framework architecture",
-    areas: ["Strategy interface", "Pipeline orchestration", "Data layer", "Scorecard generator", "Reporting"],
-    blurb: "Owns the spine of the project: the strategy base class every member subclasses, the data-layer abstraction across ten providers, the metrics engine, and the four-page scorecard that drops out the other end.",
+    role: "Framework & data layer",
+    areas: [
+      "Backtester engine",
+      "Scorecard generator",
+      "Synthetic module",
+      "Optimize (Optuna)",
+      "10 data providers",
+    ],
+    blurb: "Shipped the initial framework: the bar backtester, the four-page scorecard, the synthetic-data baseline, and every one of the ten data-provider integrations (Yahoo, Alpaca, Polygon, Tiingo, Finnhub, Alpha Vantage, Twelve Data, MarketStack, Stooq, FMP). Everything the later pull requests plugged into.",
   },
   {
-    initials: "S",
+    initials: "ST",
     name: "Sachit",
-    role: "Event engine + synthetic data",
-    areas: ["Event-driven backtester", "cGAN training", "Heston stochastic vol", "Regime conditioning"],
-    blurb: "Owns the event-driven engine (stop / limit / OCO fills intrabar), the conditional Wasserstein GAN trained on four real SPY regimes, and the Heston Monte Carlo path — the two synthetic-data lanes that stress-test every strategy.",
+    role: "Event engine & strategies",
+    areas: [
+      "Event-driven backtester",
+      "OCO brackets",
+      "Strategy base class",
+      "SMA crossover",
+      "Mean reversion",
+    ],
+    blurb: "Added the event-driven execution path — event_engine.py, order events, intrabar fills, and OCO brackets — plus the Strategy base class every member subclasses and the first two built-in strategies (SMA crossover, mean reversion). Merged as PR #1.",
   },
   {
-    initials: "C",
+    initials: "CM",
     name: "Connor",
-    role: "Monte Carlo simulation",
-    areas: ["GBM baseline", "Block bootstrap", "Noise injection", "Distributional statistics"],
-    blurb: "Owns the Monte Carlo layer: the GBM sanity baseline (positive Sharpe here = overfitting), the block-bootstrap resampler, the configurable noise-injection generator, and the distribution plots that sit on page three of the scorecard.",
+    role: "Synthetic data generators",
+    areas: [
+      "cGAN architecture",
+      "cGAN training",
+      "Heston stochastic vol",
+      "Regime data (4 SPY regimes)",
+      "Generator visualization",
+    ],
+    blurb: "Built every non-historical data source the framework uses for stress testing: the conditional Wasserstein GAN (data / main / models / train / utils / generator), the Heston stochastic-volatility Monte Carlo (MonteCarloSim.py), and the regime-labeled training datasets — bullish, bearish, sideways, crash — that make both possible. Merged as PR #2.",
   },
 ];
 ---
