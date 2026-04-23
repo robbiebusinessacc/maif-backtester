@@ -34,32 +34,36 @@ import EquityRace from "../components/EquityRace.tsx";
         <div class="border border-hair bg-white p-5 md:p-6">
           <div class="flex items-baseline justify-between border-b border-hair pb-2">
             <div class="eyebrow"><span class="sign">§</span> Built-ins, at a glance</div>
-            <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted">n = 5</div>
+            <div class="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-muted">CAGR</div>
           </div>
           <ul class="divide-y divide-hair">
             <li class="flex items-baseline justify-between py-3">
               <span>SMA Crossover <span class="text-muted font-mono">· SPY</span></span>
-              <span class="font-mono tabular-nums text-ink">+46.4%</span>
-            </li>
-            <li class="flex items-baseline justify-between py-3">
-              <span>Covered Call <span class="text-muted font-mono">· SPY</span></span>
-              <span class="font-mono tabular-nums text-positive">+90.1%</span>
-            </li>
-            <li class="flex items-baseline justify-between py-3">
-              <span>Buy &amp; Hold <span class="text-muted font-mono">· SPY</span></span>
-              <span class="font-mono tabular-nums text-muted">+51.0%</span>
+              <span class="font-mono tabular-nums text-ink">+11.26%</span>
             </li>
             <li class="flex items-baseline justify-between py-3">
               <span>Turtle Trend <span class="text-muted font-mono">· SPY</span></span>
-              <span class="font-mono tabular-nums text-muted">—<!-- TODO: pull actual number --></span>
+              <span class="font-mono tabular-nums text-ink">+3.25%</span>
+            </li>
+            <li class="flex items-baseline justify-between py-3">
+              <span>Bracket Breakout <span class="text-muted font-mono">· SPY</span></span>
+              <span class="font-mono tabular-nums text-ink">+6.25%</span>
             </li>
             <li class="flex items-baseline justify-between py-3">
               <span>SMA Crossover <span class="text-muted font-mono">· BTC/USD</span></span>
-              <span class="font-mono tabular-nums text-muted">—<!-- TODO: pull actual number --></span>
+              <span class="font-mono tabular-nums text-ink">+4.11%</span>
+            </li>
+            <li class="flex items-baseline justify-between py-3">
+              <span>Covered Call <span class="text-muted font-mono">· SPY</span></span>
+              <span class="font-mono tabular-nums text-positive">+17.45%</span>
+            </li>
+            <li class="flex items-baseline justify-between py-3 border-t-2 border-ink/20">
+              <span class="text-muted">Benchmark &nbsp; SPY B&amp;H</span>
+              <span class="font-mono tabular-nums text-muted">+10.84%</span>
             </li>
           </ul>
           <div class="mt-2 text-xs text-muted italic">
-            Figures from PRESENTATION.md Slide 7 where available; others pending export from the scorecard PNGs.
+            CAGR read from each strategy's scorecard. Covered Call converted from total return (+90.08 % over 4 y).
           </div>
         </div>
       </aside>

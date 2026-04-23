@@ -1,6 +1,8 @@
 // Metadata for the five built-in strategies showcased in the gallery.
-// End values and grades are sourced from PRESENTATION.md Slide 7 and the scorecard PNGs.
-// Where an exact number isn't published, the field is left null and a TODO is noted.
+// All figures read directly from the scorecard PNGs (the source of truth
+// for what a visitor actually sees on /scorecards/[id]). Equity scorecards
+// display CAGR as the primary return metric; the options scorecard displays
+// total return. Periods match the header printed on each PNG.
 
 export type AssetClass = "equities" | "crypto" | "options";
 
@@ -12,14 +14,16 @@ export interface StrategyCard {
   period: string;
   oneLiner: string;
   headline: {
-    return: string | null; // e.g. "+46.4%"
+    return: string | null;       // "+11.26%"
+    returnLabel: string;          // "CAGR" or "Total return"
     sharpe: string | null;
-    benchmark?: string | null;
-    divergence?: string | null;
+    benchmark?: string | null;    // "SPY B&H +50.91%"
+    maxDrawdown?: string | null;  // "-11.7%"
+    trades?: string | null;       // "13"
+    divergence?: string | null;   // "Bar ≈ Event" or "Notable"
     note?: string | null;
   };
-  grade: string; // top-line overall grade
-  // image paths (relative to /public)
+  grade: string;                  // top-line overall grade (from PNG grade wheel)
   thumbnail: string;
   pages: {
     scorecard: string;
@@ -35,14 +39,17 @@ export const STRATEGIES: StrategyCard[] = [
     name: "SMA Crossover",
     asset: "SPY",
     assetClass: "equities",
-    period: "2022 — 2025",
-    oneLiner: "Dual moving-average crossover (5/40, optimized) on US equities.",
+    period: "2022-01-03 → 2025-12-31",
+    oneLiner: "Dual moving-average crossover (5 / 40) on US equities.",
     headline: {
-      return: "+46.4%",
-      sharpe: "0.91",
-      benchmark: "SPY B&H",
-      divergence: "0.02pp",
-      note: "Engines agree — strategy is execution-robust.",
+      return: "+11.26%",
+      returnLabel: "CAGR",
+      sharpe: "1.04",
+      benchmark: "SPY B&H +50.91%",
+      maxDrawdown: "-11.7%",
+      trades: "13",
+      divergence: "Bar ≈ Event",
+      note: "Profit factor 4.17, Kelly 40.9%. GBM noise and GAN crash grades both C — suspicious profit on GBM hints at mild overfitting.",
     },
     grade: "B",
     thumbnail: "/scorecards/report_scorecard.png",
@@ -58,14 +65,19 @@ export const STRATEGIES: StrategyCard[] = [
     name: "Turtle Trend",
     asset: "SPY",
     assetClass: "equities",
-    period: "2022 — 2025",
-    oneLiner: "Turtle-style trend follower with ATR sizing and Donchian entries.",
+    period: "2022-01-03 → 2025-12-31",
+    oneLiner: "Turtle-style trend follower (55 / 20d, 2.0 ATR stop) with Donchian entries and ATR-based sizing.",
     headline: {
-      return: null, // TODO: pull exact figures from scorecard PNG
-      sharpe: null,
-      note: "Trend-following benchmark — full scorecard generated.",
+      return: "+3.25%",
+      returnLabel: "CAGR",
+      sharpe: "0.53",
+      benchmark: "SPY B&H +50.91%",
+      maxDrawdown: "-11.8%",
+      trades: "11",
+      divergence: "Bar ≈ Event",
+      note: "Profit factor 2.15, expectancy $1,292 per trade. Trend-following behaves as expected — lags in choppy markets.",
     },
-    grade: "B", // TODO: confirm from scorecard PNG
+    grade: "B",
     thumbnail: "/scorecards/report_turtle_scorecard.png",
     pages: {
       scorecard: "/scorecards/report_turtle_scorecard.png",
@@ -79,15 +91,19 @@ export const STRATEGIES: StrategyCard[] = [
     name: "Bracket Breakout",
     asset: "SPY",
     assetClass: "equities",
-    period: "2022 — 2025",
-    oneLiner: "Donchian breakout with OCO stop-loss / take-profit brackets — the canonical engine-divergence test.",
+    period: "2022-01-03 → 2025-12-31",
+    oneLiner: "Donchian breakout (20d) with OCO stop-loss (1.5 ATR) / take-profit (3.0 ATR) brackets — the canonical engine-divergence test.",
     headline: {
-      return: null, // TODO
-      sharpe: null,
-      divergence: "High",
-      note: "Intentionally divergent: bar engine cannot model the OCO intrabar fills.",
+      return: "+6.25%",
+      returnLabel: "CAGR",
+      sharpe: "1.21",
+      benchmark: "SPY B&H +50.91%",
+      maxDrawdown: "-12.3%",
+      trades: "22",
+      divergence: "Notable",
+      note: "Intentionally divergent: the bar engine cannot model OCO intrabar fills. Event-driven match grade C confirms execution sensitivity.",
     },
-    grade: "C", // TODO: confirm from scorecard PNG
+    grade: "B",
     thumbnail: "/scorecards/report_divergence_scorecard.png",
     pages: {
       scorecard: "/scorecards/report_divergence_scorecard.png",
@@ -101,14 +117,19 @@ export const STRATEGIES: StrategyCard[] = [
     name: "SMA Crossover",
     asset: "BTC/USD",
     assetClass: "crypto",
-    period: "2024 — 2025",
-    oneLiner: "Same SMA logic on Bitcoin via Kraken (CCXT) — crypto-aware 365-day calendar, no weekend-gap false positives.",
+    period: "2024-05-01 → 2025-12-31",
+    oneLiner: "Same SMA logic (10 / 30) on Bitcoin via Kraken (CCXT) — crypto-aware 365-day calendar, no weekend-gap false positives.",
     headline: {
-      return: null, // TODO
-      sharpe: null,
-      note: "Full scorecard generated, crypto-aware validation.",
+      return: "+4.11%",
+      returnLabel: "CAGR",
+      sharpe: "0.29",
+      benchmark: "BTC B&H +47.99%",
+      maxDrawdown: "-22.7%",
+      trades: "13",
+      divergence: "Bar ≈ Event",
+      note: "Lags buy-and-hold badly — SMA is a poor fit for BTC's volatility profile. A useful negative case study.",
     },
-    grade: "B", // TODO
+    grade: "C",
     thumbnail: "/scorecards/crypto_report_scorecard.png",
     pages: {
       scorecard: "/scorecards/crypto_report_scorecard.png",
@@ -122,18 +143,22 @@ export const STRATEGIES: StrategyCard[] = [
     name: "Covered Call",
     asset: "SPY",
     assetClass: "options",
-    period: "2022 — 2025",
-    oneLiner: "Sell monthly 30-DTE, 0.30-delta covered calls on the underlying.",
+    period: "2022-01-03 → 2025-12-31",
+    oneLiner: "Monthly 30-DTE, 0.30-delta covered calls on the underlying.",
     headline: {
-      return: "+90.1%",
+      return: "+90.08%",
+      returnLabel: "Total return",
       sharpe: "1.41",
-      benchmark: "SPY B&H +51%",
-      note: "Initial 2.17 Sharpe was a naked-call bug — now correctly marked as covered.",
+      benchmark: "SPY B&H +50.91%",
+      maxDrawdown: "-11.95%",
+      trades: "120",
+      divergence: null,
+      note: "Beats benchmark by 39.2 pp. Premium collected $46,002, cost efficiency 2 % of PnL. Win rate 74.2 %.",
     },
-    grade: "A",
+    grade: "B",
     thumbnail: "/scorecards/options_scorecard.png",
     pages: {
-      // Options scorecard is single-page today.
+      // Options scorecard is single-page — all slots point at the same file.
       scorecard: "/scorecards/options_scorecard.png",
       bartest: "/scorecards/options_scorecard.png",
       eventdriven: "/scorecards/options_scorecard.png",
