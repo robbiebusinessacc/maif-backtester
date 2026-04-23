@@ -15,12 +15,26 @@ if (!s) {
   throw new Error(`Unknown strategy: ${id}`);
 }
 
-const pages = [
+// Dedupe by src — the options scorecard is single-page (all four slots
+// point at the same PNG). Equity scorecards get four distinct pages.
+const rawPages = [
   { label: "Summary & grades", src: s.pages.scorecard },
   { label: "Bar-engine backtest", src: s.pages.bartest },
   { label: "Event-driven backtest", src: s.pages.eventdriven },
   { label: "Monte Carlo distributions", src: s.pages.montecarlo },
 ];
+const seen = new Set<string>();
+const pages = rawPages.filter((p) => {
+  if (seen.has(p.src)) return false;
+  seen.add(p.src);
+  return true;
+});
+// If the scorecard is single-page (e.g. options), collapse the label
+// to just 'Scorecard' since there are no other pages to distinguish it from.
+if (pages.length === 1) {
+  pages[0] = { ...pages[0], label: "Scorecard" };
+}
+const isSinglePage = pages.length === 1;
 ---
 <Base title={`${s.name} · ${s.asset}`} wide>
   <!-- Masthead -->
@@ -97,10 +111,16 @@ const pages = [
   <!-- Scorecard pages -->
   <section class="max-w-wide mx-auto px-6 md:px-10 py-12">
     <div class="max-w-prose mb-8">
-      <Eyebrow label="Full scorecard" index="4 pages" />
+      <Eyebrow label={isSinglePage ? "Scorecard" : "Full scorecard"} index={isSinglePage ? "1 page" : `${pages.length} pages`} />
       <h2 class="font-display text-[2rem] md:text-[2.4rem] text-ink mt-3 leading-[1.1]">
-        Every page. Click to enlarge.
+        {isSinglePage ? "Click to enlarge." : "Every page. Click to enlarge."}
       </h2>
+      {isSinglePage && (
+        <p class="mt-3 text-[0.94rem] text-muted italic max-w-prose">
+          The options scorecard is single-page &mdash; no separate Monte Carlo or engine-comparison
+          pages yet for options strategies.
+        </p>
+      )}
     </div>
     <ScorecardLightbox client:load pages={pages} />
   </section>
