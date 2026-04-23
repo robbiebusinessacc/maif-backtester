@@ -11,7 +11,7 @@ function gradeClass(g: string): string {
   return L === "A" ? "grade--a" : L === "B" ? "grade--b" : L === "C" ? "grade--c" : L === "D" ? "grade--d" : L === "F" ? "grade--f" : "";
 }
 
-function parsePct(v: string | null | undefined): number | null {
+function parseNum(v: string | null | undefined): number | null {
   if (!v) return null;
   const m = v.match(/-?\d+(\.\d+)?/);
   return m ? parseFloat(m[0]) : null;
@@ -23,8 +23,8 @@ function deltaCell(
   opts: { higherIsBetter?: boolean } = {},
 ) {
   const higherIsBetter = opts.higherIsBetter ?? true;
-  const na = parsePct(a);
-  const nb = parsePct(b);
+  const na = parseNum(a);
+  const nb = parseNum(b);
   if (na === null || nb === null) return <span className="text-muted">—</span>;
   const diff = na - nb;
   if (diff === 0) return <span className="text-muted font-mono">≈</span>;
@@ -44,7 +44,6 @@ function deltaCell(
 function deltaGrade(a: string, b: string) {
   const diff = gradeRank(a) - gradeRank(b);
   if (diff === 0) return <span className="text-muted font-mono">≈</span>;
-  // lower rank number = better grade → if A-rank(a) < A-rank(b), a is better
   const good = diff < 0;
   const arrow = diff < 0 ? "↑" : "↓";
   return (
@@ -54,6 +53,44 @@ function deltaGrade(a: string, b: string) {
     >
       {arrow} {Math.abs(diff)}
     </span>
+  );
+}
+
+function Picker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block border border-hair bg-white hover:border-primary transition-colors">
+      <span className="block px-4 pt-3 font-mono text-[0.68rem] uppercase tracking-[0.18em] text-primary">
+        {label}
+      </span>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full appearance-none bg-transparent border-0 px-4 pb-3 pt-1 pr-10 font-body text-[1.02rem] text-ink cursor-pointer focus:outline-none"
+          style={{ WebkitAppearance: "none", MozAppearance: "none" }}
+        >
+          {STRATEGIES.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name} · {x.asset}
+            </option>
+          ))}
+        </select>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-mono text-[0.78rem] text-muted"
+        >
+          ▾
+        </span>
+      </div>
+    </label>
   );
 }
 
@@ -109,45 +146,15 @@ export default function CompareDiff() {
   const A = STRATEGIES.find((x) => x.id === aId)!;
   const B = STRATEGIES.find((x) => x.id === bId)!;
 
-  // Note: Δ for mixed returnLabels (CAGR vs Total return) is mathematically
-  // inappropriate. We suppress the delta when labels differ.
-  const returnLabelsMatch = A.headline.returnLabel === B.headline.returnLabel;
-
   return (
     <div>
       {/* Pickers */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-end">
-        <label className="block border border-hair bg-white px-4 py-3">
-          <div className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-primary mb-1">Strategy A</div>
-          <select
-            value={aId}
-            onChange={(e) => setA(e.target.value)}
-            className="w-full bg-transparent border-0 font-display text-[1.5rem] md:text-[1.9rem] text-ink focus:outline-none leading-tight"
-          >
-            {STRATEGIES.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name} · {x.asset}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Picker label="Strategy A" value={aId} onChange={setA} />
         <div className="hidden md:flex items-center justify-center pb-3">
           <span className="font-display italic text-[1.2rem] text-muted">vs.</span>
         </div>
-        <label className="block border border-hair bg-white px-4 py-3">
-          <div className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-primary mb-1">Strategy B</div>
-          <select
-            value={bId}
-            onChange={(e) => setB(e.target.value)}
-            className="w-full bg-transparent border-0 font-display text-[1.5rem] md:text-[1.9rem] text-ink focus:outline-none leading-tight"
-          >
-            {STRATEGIES.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name} · {x.asset}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Picker label="Strategy B" value={bId} onChange={setB} />
       </div>
 
       {/* Metrics table */}
@@ -179,16 +186,9 @@ export default function CompareDiff() {
               <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.period}</td>
             </tr>
             <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">
-                Return
-                <span className="block text-[0.7rem] normal-case tracking-normal text-muted">
-                  {A.headline.returnLabel}{returnLabelsMatch ? "" : ` / ${B.headline.returnLabel}`}
-                </span>
-              </td>
+              <td className="px-4 py-3 label">CAGR</td>
               <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{A.headline.return ?? "—"}</td>
-              <td className="px-3 py-3 text-center">
-                {returnLabelsMatch ? deltaCell(A.headline.return, B.headline.return) : <span className="text-muted italic text-[0.72rem]">mixed</span>}
-              </td>
+              <td className="px-3 py-3 text-center">{deltaCell(A.headline.return, B.headline.return)}</td>
               <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.return ?? "—"}</td>
             </tr>
             <tr className="border-b border-hair">
@@ -210,7 +210,7 @@ export default function CompareDiff() {
               <td className="px-4 py-3 text-right font-mono tabular-nums text-[1.05rem]">{B.headline.trades ?? "—"}</td>
             </tr>
             <tr className="border-b border-hair">
-              <td className="px-4 py-3 label">Benchmark</td>
+              <td className="px-4 py-3 label">Benchmark (CAGR)</td>
               <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{A.headline.benchmark ?? "—"}</td>
               <td className="px-3 py-3 text-center"></td>
               <td className="px-4 py-3 text-right font-mono text-[0.88rem]">{B.headline.benchmark ?? "—"}</td>

@@ -1,8 +1,9 @@
 // Metadata for the five built-in strategies showcased in the gallery.
-// All figures read directly from the scorecard PNGs (the source of truth
-// for what a visitor actually sees on /scorecards/[id]). Equity scorecards
-// display CAGR as the primary return metric; the options scorecard displays
-// total return. Periods match the header printed on each PNG.
+// Numbers read from each scorecard PNG. Return and Benchmark are
+// reported as CAGR throughout the site for consistency — options
+// scorecards display total return on the PNG itself but we convert
+// to CAGR here so the gallery, detail pages, and compare table all
+// speak the same unit.
 
 export type AssetClass = "equities" | "crypto" | "options";
 
@@ -14,10 +15,9 @@ export interface StrategyCard {
   period: string;
   oneLiner: string;
   headline: {
-    return: string | null;       // "+11.26%"
-    returnLabel: string;          // "CAGR" or "Total return"
+    return: string | null;       // CAGR, e.g. "+11.26%"
     sharpe: string | null;
-    benchmark?: string | null;    // "SPY B&H +50.91%"
+    benchmark?: string | null;    // "SPY B&H +10.84%" (also CAGR)
     maxDrawdown?: string | null;  // "-11.7%"
     trades?: string | null;       // "13"
     divergence?: string | null;   // "Bar ≈ Event" or "Notable"
@@ -43,9 +43,8 @@ export const STRATEGIES: StrategyCard[] = [
     oneLiner: "Dual moving-average crossover (5 / 40) on US equities.",
     headline: {
       return: "+11.26%",
-      returnLabel: "CAGR",
       sharpe: "1.04",
-      benchmark: "SPY B&H +50.91%",
+      benchmark: "SPY B&H +10.84%",
       maxDrawdown: "-11.7%",
       trades: "13",
       divergence: "Bar ≈ Event",
@@ -69,9 +68,8 @@ export const STRATEGIES: StrategyCard[] = [
     oneLiner: "Turtle-style trend follower (55 / 20d, 2.0 ATR stop) with Donchian entries and ATR-based sizing.",
     headline: {
       return: "+3.25%",
-      returnLabel: "CAGR",
       sharpe: "0.53",
-      benchmark: "SPY B&H +50.91%",
+      benchmark: "SPY B&H +10.84%",
       maxDrawdown: "-11.8%",
       trades: "11",
       divergence: "Bar ≈ Event",
@@ -95,9 +93,8 @@ export const STRATEGIES: StrategyCard[] = [
     oneLiner: "Donchian breakout (20d) with OCO stop-loss (1.5 ATR) / take-profit (3.0 ATR) brackets — the canonical engine-divergence test.",
     headline: {
       return: "+6.25%",
-      returnLabel: "CAGR",
       sharpe: "1.21",
-      benchmark: "SPY B&H +50.91%",
+      benchmark: "SPY B&H +10.84%",
       maxDrawdown: "-12.3%",
       trades: "22",
       divergence: "Notable",
@@ -121,9 +118,8 @@ export const STRATEGIES: StrategyCard[] = [
     oneLiner: "Same SMA logic (10 / 30) on Bitcoin via Kraken (CCXT) — crypto-aware 365-day calendar, no weekend-gap false positives.",
     headline: {
       return: "+4.11%",
-      returnLabel: "CAGR",
       sharpe: "0.29",
-      benchmark: "BTC B&H +47.99%",
+      benchmark: "BTC B&H +26.40%",
       maxDrawdown: "-22.7%",
       trades: "13",
       divergence: "Bar ≈ Event",
@@ -146,14 +142,13 @@ export const STRATEGIES: StrategyCard[] = [
     period: "2022-01-03 → 2025-12-31",
     oneLiner: "Monthly 30-DTE, 0.30-delta covered calls on the underlying.",
     headline: {
-      return: "+90.08%",
-      returnLabel: "Total return",
+      return: "+17.45%",
       sharpe: "1.41",
-      benchmark: "SPY B&H +50.91%",
+      benchmark: "SPY B&H +10.84%",
       maxDrawdown: "-11.95%",
       trades: "120",
       divergence: null,
-      note: "Beats benchmark by 39.2 pp. Premium collected $46,002, cost efficiency 2 % of PnL. Win rate 74.2 %.",
+      note: "Beats SPY buy-and-hold by 6.6 pp of CAGR (total return +90.08 % over 4 y vs SPY +50.91 %). Premium collected $46,002, cost efficiency 2 % of PnL, win rate 74.2 %.",
     },
     grade: "B",
     thumbnail: "/scorecards/options_scorecard.png",
