@@ -14,28 +14,27 @@ const team = [
   {
     initials: "RW",
     name: "Robbie",
-    role: "Framework & data layer",
+    role: "Framework, strategies & data layer",
     areas: [
-      "Backtester engine",
+      "Bar backtester",
       "Scorecard generator",
-      "Synthetic module",
       "Optimize (Optuna)",
+      "Strategies + base class",
       "10 data providers",
     ],
-    blurb: "Shipped the initial framework: the bar backtester, the four-page scorecard, the synthetic-data baseline, and every one of the ten data-provider integrations (Yahoo, Alpaca, Polygon, Tiingo, Finnhub, Alpha Vantage, Twelve Data, MarketStack, Stooq, FMP). Everything the later pull requests plugged into.",
+    blurb: "Built the framework in the initial commit: the bar backtester, the four-page scorecard, the Optuna optimizer, the Strategy base class and all five built-in strategies (SMA crossover, mean reversion, turtle, bracket breakout, covered call), and every one of the ten data-provider integrations (Yahoo, Alpaca, Polygon, Tiingo, Finnhub, Alpha Vantage, Twelve Data, MarketStack, Stooq, FMP).",
   },
   {
     initials: "ST",
     name: "Sachit",
-    role: "Event engine & strategies",
+    role: "Event-driven engine",
     areas: [
       "Event-driven backtester",
+      "Order events",
+      "Intrabar fills",
       "OCO brackets",
-      "Strategy base class",
-      "SMA crossover",
-      "Mean reversion",
     ],
-    blurb: "Added the event-driven execution path — event_engine.py, order events, intrabar fills, and OCO brackets — plus the Strategy base class every member subclasses and the first two built-in strategies (SMA crossover, mean reversion).",
+    blurb: "Added the event-driven execution path — event_engine.py, order events, intrabar fills, and OCO brackets — the second engine any strategy can run against, alongside Robbie's bar backtester.",
   },
   {
     initials: "CM",
@@ -60,8 +59,8 @@ const team = [
       <em class="italic text-primary">One framework.</em>
     </h1>
     <p class="mt-5 max-w-prose text-[1.05rem] leading-[1.65] text-ink">
-      The framework is a MAIF project. Work is split across three areas &mdash; the backtester and
-      data layer; the event-driven execution engine and strategies; and the synthetic-data
+      The framework is a MAIF project. Work is split across three areas &mdash; the backtester,
+      strategies and data layer; the event-driven execution engine; and the synthetic-data
       generators that stress-test everything. Attribution below reflects actual commit authorship,
       not aspirational roles.
     </p>
